@@ -16,6 +16,7 @@ from app.services.project_service import (
     ProjectNotFoundError,
     add_progress_update,
     create_project,
+    delete_project,
     get_project,
     list_progress_updates,
     list_projects,
@@ -72,6 +73,18 @@ def put_project(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projeto não encontrado")
     except InvalidManagerError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Gestor informado não existe")
+
+
+@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_project_endpoint(
+    project_id: int,
+    db: DbSession = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    try:
+        delete_project(db, project_id)
+    except ProjectNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projeto não encontrado")
 
 
 @router.get("/{project_id}/updates", response_model=list[ProjectProgressUpdateOut])

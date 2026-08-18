@@ -81,6 +81,15 @@ def update_project(db: DbSession, project_id: int, data: ProjectUpdateIn) -> Pro
     return project
 
 
+def delete_project(db: DbSession, project_id: int) -> None:
+    project = db.get(Project, project_id)
+    if project is None:
+        raise ProjectNotFoundError(project_id)
+
+    db.delete(project)
+    db.commit()
+
+
 def add_progress_update(
     db: DbSession, project_id: int, author_id: int, data: ProjectProgressUpdateCreate
 ) -> ProjectUpdate:

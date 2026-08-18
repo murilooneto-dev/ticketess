@@ -353,6 +353,17 @@ button:disabled {
   gap: 1rem;
 }
 
+.project-name-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.danger-button {
+  background-color: #fce9e9;
+  color: #b91c1c;
+}
+
 .checkbox-label {
   display: flex;
   align-items: center;
