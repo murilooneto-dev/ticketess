@@ -1,0 +1,62 @@
+import { handleApiResponse } from "../utils/apiError.js";
+
+const API_BASE_URL = "/api";
+
+export async function fetchProjects(mine = false) {
+  const response = await fetch(`${API_BASE_URL}/projects${mine ? "?mine=true" : ""}`, {
+    credentials: "include",
+  });
+  return handleApiResponse(response);
+}
+
+export async function fetchProject(projectId) {
+  const response = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
+    credentials: "include",
+  });
+  return handleApiResponse(response);
+}
+
+export async function createProject(data) {
+  const response = await fetch(`${API_BASE_URL}/projects`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  return handleApiResponse(response);
+}
+
+export async function updateProject(projectId, data) {
+  const response = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  return handleApiResponse(response);
+}
+
+export async function fetchProjectUpdates(projectId) {
+  const response = await fetch(`${API_BASE_URL}/projects/${projectId}/updates`, {
+    credentials: "include",
+  });
+  return handleApiResponse(response);
+}
+
+export async function addProjectUpdate(projectId, message) {
+  const response = await fetch(`${API_BASE_URL}/projects/${projectId}/updates`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ message }),
+  });
+  return handleApiResponse(response);
+}
+
+export async function fetchManagers() {
+  const response = await fetch(`${API_BASE_URL}/users`, {
+    credentials: "include",
+  });
+  const users = await handleApiResponse(response);
+  return users.filter((u) => u.role === "gestor");
+}
