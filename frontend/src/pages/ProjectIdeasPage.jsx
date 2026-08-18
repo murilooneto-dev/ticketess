@@ -42,8 +42,13 @@ export default function ProjectIdeasPage() {
   }
 
   async function handleStatusChange(ideaId, nextStatus) {
-    await updateProjectIdeaStatus(ideaId, nextStatus);
-    queryClient.invalidateQueries({ queryKey: ["project-ideas"] });
+    setError("");
+    try {
+      await updateProjectIdeaStatus(ideaId, nextStatus);
+      queryClient.invalidateQueries({ queryKey: ["project-ideas"] });
+    } catch (err) {
+      setError(err.message || "Não foi possível atualizar o status da ideia.");
+    }
   }
 
   return (
