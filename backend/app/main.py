@@ -10,6 +10,7 @@ from app.api.dashboard import router as dashboard_router
 from app.api.github import router as github_router
 from app.api.notifications import router as notifications_router
 from app.api.projects import router as projects_router
+from app.api.project_ideas import router as project_ideas_router
 from app.api.reports import router as reports_router
 from app.api.system import router as system_router
 from app.api.tickets import router as tickets_router
@@ -49,6 +50,7 @@ app.include_router(system_router)
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(projects_router)
+app.include_router(project_ideas_router)
 app.include_router(tickets_router)
 app.include_router(notifications_router)
 app.include_router(github_router)
