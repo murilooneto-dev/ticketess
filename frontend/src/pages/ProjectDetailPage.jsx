@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext.jsx";
 import { fetchProjectCommits, fetchProjectPullRequests, syncProjectGithub } from "../services/github.js";
-import { addProjectUpdate, fetchProject, fetchProjectUpdates, updateProject } from "../services/projects.js";
+import {
+  addProjectUpdate,
+  deleteProject,
+  fetchProject,
+  fetchProjectUpdates,
+  updateProject,
+} from "../services/projects.js";
 import { STATUS_LABELS, STATUS_OPTIONS } from "../utils/projectStatus.js";
 
 export default function ProjectDetailPage() {
@@ -12,9 +18,16 @@ export default function ProjectDetailPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const [name, setName] = useState("");
+  const [nameError, setNameError] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const [githubRepo, setGithubRepo] = useState("");
   const [repoError, setRepoError] = useState("");
@@ -36,6 +49,7 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     if (project) {
       setGithubRepo(project.github_repo || "");
+      setName(project.name);
     }
   }, [project]);
 
@@ -68,6 +82,36 @@ export default function ProjectDetailPage() {
       setError(err.message || "Não foi possível registrar o andamento.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleSaveName(event) {
+    event.preventDefault();
+    setNameError("");
+    setSavingName(true);
+    try {
+      await updateProject(projectId, { name });
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    } catch (err) {
+      setNameError(err.message || "Não foi possível renomear o projeto.");
+    } finally {
+      setSavingName(false);
+    }
+  }
+
+  async function handleDeleteProject() {
+    if (!window.confirm(`Excluir o projeto "${project.name}"? Essa ação não pode ser desfeita.`)) {
+      return;
+    }
+    setDeleteError("");
+    setDeleting(true);
+    try {
+      await deleteProject(projectId);
+      navigate("/projects", { replace: true });
+    } catch (err) {
+      setDeleteError(err.message || "Não foi possível excluir o projeto.");
+      setDeleting(false);
     }
   }
 
@@ -160,7 +204,21 @@ export default function ProjectDetailPage() {
       </Link>
 
       <div className="page-header">
-        <h1>{project.name}</h1>
+        {isAdmin ? (
+          <form className="project-name-form" onSubmit={handleSaveName}>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              aria-label="Nome do projeto"
+              required
+            />
+            <button type="submit" disabled={savingName || name === project.name}>
+              {savingName ? "Salvando..." : "Salvar nome"}
+            </button>
+          </form>
+        ) : (
+          <h1>{project.name}</h1>
+        )}
         {isAdmin ? (
           <select value={project.status} onChange={handleStatusChange}>
             {STATUS_OPTIONS.map((option) => (
@@ -173,9 +231,19 @@ export default function ProjectDetailPage() {
           <span className={`badge badge-${project.status}`}>{STATUS_LABELS[project.status]}</span>
         )}
       </div>
+      {nameError && <p className="error">{nameError}</p>}
 
       <p>{project.description || "Sem descrição."}</p>
       <p className="meta">Gestor responsável: {project.manager ? project.manager.name : "—"}</p>
+
+      {isAdmin && (
+        <div className="page-actions">
+          <button type="button" onClick={handleDeleteProject} disabled={deleting} className="danger-button">
+            {deleting ? "Excluindo..." : "Excluir projeto"}
+          </button>
+        </div>
+      )}
+      {deleteError && <p className="error">{deleteError}</p>}
 
       <h2>Andamento</h2>
 

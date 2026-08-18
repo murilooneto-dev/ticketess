@@ -29,9 +29,9 @@ export default function NavBar() {
         <Logo size="md" variant="wide" />
       </Link>
       <div className="navbar-links">
-        <Link to="/projects">Projetos</Link>
+        {user.role !== "operador" && <Link to="/projects">Projetos</Link>}
         <Link to="/tickets">Solicitações</Link>
-        <Link to="/reports">Relatórios</Link>
+        {user.role !== "operador" && <Link to="/reports">Relatórios</Link>}
         {user.role === "admin" && <Link to="/users">Usuários</Link>}
         <NotificationBell />
         <span className="navbar-user">
