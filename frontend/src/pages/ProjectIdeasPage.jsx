@@ -19,6 +19,7 @@ export default function ProjectIdeasPage() {
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [pendingIdeaId, setPendingIdeaId] = useState(null);
 
   const { data: ideas, isLoading, isError } = useQuery({
     queryKey: ["project-ideas"],
@@ -43,11 +44,14 @@ export default function ProjectIdeasPage() {
 
   async function handleStatusChange(ideaId, nextStatus) {
     setError("");
+    setPendingIdeaId(ideaId);
     try {
       await updateProjectIdeaStatus(ideaId, nextStatus);
       queryClient.invalidateQueries({ queryKey: ["project-ideas"] });
     } catch (err) {
       setError(err.message || "Não foi possível atualizar o status da ideia.");
+    } finally {
+      setPendingIdeaId(null);
     }
   }
 
@@ -107,10 +111,18 @@ export default function ProjectIdeasPage() {
                   <td>
                     {idea.status === "pendente" && (
                       <>
-                        <button type="button" onClick={() => handleStatusChange(idea.id, "aprovada")}>
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(idea.id, "aprovada")}
+                          disabled={pendingIdeaId === idea.id}
+                        >
                           Aprovar
                         </button>{" "}
-                        <button type="button" onClick={() => handleStatusChange(idea.id, "rejeitada")}>
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(idea.id, "rejeitada")}
+                          disabled={pendingIdeaId === idea.id}
+                        >
                           Rejeitar
                         </button>
                       </>

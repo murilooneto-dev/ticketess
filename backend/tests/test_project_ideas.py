@@ -64,11 +64,11 @@ def test_list_project_ideas_scoped_by_role(db_session):
 
 
 def test_update_project_idea_status_notifies_author(db_session):
-    _create_user(db_session, "admin_svc3", UserRole.ADMIN)
+    admin = _create_user(db_session, "admin_svc3", UserRole.ADMIN)
     author = _create_user(db_session, "gestor_svc3", UserRole.GESTOR)
     idea = create_project_idea(db_session, author.id, ProjectIdeaCreate(title="Ideia C", description="desc"))
 
-    updated = update_project_idea_status(db_session, idea.id, ProjectIdeaStatus.APROVADA)
+    updated = update_project_idea_status(db_session, idea.id, ProjectIdeaStatus.APROVADA, admin.id)
 
     assert updated.status == ProjectIdeaStatus.APROVADA
     notifications = list_notifications(db_session, author.id)
@@ -76,8 +76,31 @@ def test_update_project_idea_status_notifies_author(db_session):
 
 
 def test_update_nonexistent_idea_raises(db_session):
+    admin = _create_user(db_session, "admin_svc4", UserRole.ADMIN)
     with pytest.raises(ProjectIdeaNotFoundError):
-        update_project_idea_status(db_session, 9999, ProjectIdeaStatus.REJEITADA)
+        update_project_idea_status(db_session, 9999, ProjectIdeaStatus.REJEITADA, admin.id)
+
+
+def test_repeated_status_update_does_not_duplicate_notification(db_session):
+    admin = _create_user(db_session, "admin_svc5", UserRole.ADMIN)
+    author = _create_user(db_session, "gestor_svc5", UserRole.GESTOR)
+    idea = create_project_idea(db_session, author.id, ProjectIdeaCreate(title="Ideia D", description="desc"))
+
+    update_project_idea_status(db_session, idea.id, ProjectIdeaStatus.APROVADA, admin.id)
+    update_project_idea_status(db_session, idea.id, ProjectIdeaStatus.APROVADA, admin.id)
+
+    notifications = [n for n in list_notifications(db_session, author.id) if "aprovada" in n.title]
+    assert len(notifications) == 1
+
+
+def test_admin_approving_own_idea_does_not_self_notify(db_session):
+    admin = _create_user(db_session, "admin_svc6", UserRole.ADMIN)
+    idea = create_project_idea(db_session, admin.id, ProjectIdeaCreate(title="Ideia E", description="desc"))
+
+    update_project_idea_status(db_session, idea.id, ProjectIdeaStatus.APROVADA, admin.id)
+
+    notifications = [n for n in list_notifications(db_session, admin.id) if "aprovada" in n.title]
+    assert notifications == []
 
 
 def _create_and_login(client, db_session, username, password, role):

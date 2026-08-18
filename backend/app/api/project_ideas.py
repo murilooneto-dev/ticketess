@@ -37,9 +37,9 @@ def patch_project_idea_status(
     idea_id: int,
     payload: ProjectIdeaStatusUpdate,
     db: DbSession = Depends(get_db),
-    _: User = Depends(require_admin),
+    current_user: User = Depends(require_admin),
 ):
     try:
-        return update_project_idea_status(db, idea_id, payload.status)
+        return update_project_idea_status(db, idea_id, payload.status, current_user.id)
     except ProjectIdeaNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ideia não encontrada")

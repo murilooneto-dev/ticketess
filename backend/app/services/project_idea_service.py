@@ -49,16 +49,19 @@ def list_project_ideas(db: DbSession, current_user: User) -> list[ProjectIdea]:
     return list(db.execute(query).unique().scalars())
 
 
-def update_project_idea_status(db: DbSession, idea_id: int, status: ProjectIdeaStatus) -> ProjectIdea:
+def update_project_idea_status(
+    db: DbSession, idea_id: int, status: ProjectIdeaStatus, actor_id: int
+) -> ProjectIdea:
     idea = db.execute(_idea_query().where(ProjectIdea.id == idea_id)).unique().scalar_one_or_none()
     if idea is None:
         raise ProjectIdeaNotFoundError(idea_id)
 
+    previous_status = idea.status
     idea.status = status
     db.commit()
     db.refresh(idea)
 
-    if idea.author is not None:
+    if previous_status != status and idea.author is not None:
         notify_users(
             db,
             [idea.author],
@@ -66,5 +69,6 @@ def update_project_idea_status(db: DbSession, idea_id: int, status: ProjectIdeaS
             title=f"Ideia de projeto {STATUS_LABELS_PT[status]}: {idea.title}",
             message=f"Sua ideia \"{idea.title}\" foi marcada como {STATUS_LABELS_PT[status]}.",
             link="/project-ideas",
+            exclude_user_id=actor_id,
         )
     return idea
