@@ -1,6 +1,7 @@
 from app.models.github import GithubCommit, GithubPullRequest
 from app.models.notification import Notification, NotificationType
 from app.models.project import Project, ProjectStatus, ProjectUpdate
+from app.models.project_idea import ProjectIdea, ProjectIdeaStatus
 from app.models.report import Report, ReportType
 from app.models.session import Session
 from app.models.ticket import (
@@ -21,6 +22,8 @@ __all__ = [
     "Project",
     "ProjectStatus",
     "ProjectUpdate",
+    "ProjectIdea",
+    "ProjectIdeaStatus",
     "Ticket",
     "TicketType",
     "TicketPriority",

@@ -12,6 +12,8 @@ class NotificationType(str, enum.Enum):
     TICKET_UPDATED = "ticket_updated"
     TICKET_COMMENT = "ticket_comment"
     PROJECT_UPDATE = "project_update"
+    PROJECT_IDEA_CREATED = "project_idea_created"
+    PROJECT_IDEA_STATUS_CHANGED = "project_idea_status_changed"
 
 
 class Notification(Base):
