@@ -7,6 +7,7 @@ import LoginPage from "../pages/LoginPage.jsx";
 import NewProjectPage from "../pages/NewProjectPage.jsx";
 import NewTicketPage from "../pages/NewTicketPage.jsx";
 import ProjectDetailPage from "../pages/ProjectDetailPage.jsx";
+import ProjectIdeasPage from "../pages/ProjectIdeasPage.jsx";
 import ProjectsPage from "../pages/ProjectsPage.jsx";
 import ReportsPage from "../pages/ReportsPage.jsx";
 import TicketDetailPage from "../pages/TicketDetailPage.jsx";
@@ -46,6 +47,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute>
             <ProjectDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/project-ideas"
+        element={
+          <ProtectedRoute>
+            <ProjectIdeasPage />
           </ProtectedRoute>
         }
       />

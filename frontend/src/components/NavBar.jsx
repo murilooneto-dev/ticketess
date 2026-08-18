@@ -31,6 +31,7 @@ export default function NavBar() {
       <div className="navbar-links">
         <Link to="/projects">Projetos</Link>
         <Link to="/tickets">Solicitações</Link>
+        <Link to="/project-ideas">Ideias</Link>
         <Link to="/reports">Relatórios</Link>
         {user.role === "admin" && <Link to="/users">Usuários</Link>}
         <NotificationBell />

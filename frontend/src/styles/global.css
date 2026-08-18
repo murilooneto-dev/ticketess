@@ -478,6 +478,21 @@ button:disabled {
   color: #b91c1c;
 }
 
+.badge-idea-pendente {
+  background-color: var(--bg-panel-alt);
+  color: var(--text-secondary);
+}
+
+.badge-idea-aprovada {
+  background-color: #e3f6ea;
+  color: #15803d;
+}
+
+.badge-idea-rejeitada {
+  background-color: #fce9e9;
+  color: #b91c1c;
+}
+
 /* Ticket detail */
 
 .ticket-fields {
