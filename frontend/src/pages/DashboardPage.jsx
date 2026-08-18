@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 
 import StatBarList from "../components/StatBarList.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -19,6 +19,10 @@ const ROLE_LABELS = {
 
 export default function DashboardPage() {
   const { user } = useAuth();
+
+  if (user?.role === "operador") {
+    return <Navigate to="/tickets" replace />;
+  }
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["dashboard-summary"],

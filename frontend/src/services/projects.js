@@ -1,4 +1,4 @@
-import { handleApiResponse } from "../utils/apiError.js";
+import { extractErrorMessage, handleApiResponse } from "../utils/apiError.js";
 
 const API_BASE_URL = "/api";
 
@@ -34,6 +34,22 @@ export async function updateProject(projectId, data) {
     body: JSON.stringify(data),
   });
   return handleApiResponse(response);
+}
+
+export async function deleteProject(projectId) {
+  const response = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    let detail = null;
+    try {
+      detail = (await response.json()).detail;
+    } catch {
+      // corpo sem JSON, mantém mensagem padrão
+    }
+    throw new Error(extractErrorMessage(detail, `Erro ${response.status}`));
+  }
 }
 
 export async function fetchProjectUpdates(projectId) {
