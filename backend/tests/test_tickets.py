@@ -383,3 +383,39 @@ def _create_user_direct(db_session):
     return create_user(
         db_session, UserCreate(name="Admin Direto", username="admin_fin_direct", password="senha1234", role=UserRole.ADMIN)
     )
+
+
+def test_finalize_endpoint_requires_admin(client, db_session):
+    _create_and_login(client, db_session, "gestor_fin", "senha1234", UserRole.GESTOR)
+    project = _create_project(db_session)
+    ticket_id = client.post("/api/tickets", json={"project_id": project.id, "title": "Ticket Fin5"}).json()["id"]
+
+    response = client.post(f"/api/tickets/{ticket_id}/finalize")
+
+    assert response.status_code == 403
+
+
+def test_finalize_endpoint_rejects_open_ticket(client, db_session):
+    _create_and_login(client, db_session, "admin_fin5", "senha1234", UserRole.ADMIN)
+    project = _create_project(db_session)
+    ticket_id = client.post("/api/tickets", json={"project_id": project.id, "title": "Ticket Fin6"}).json()["id"]
+
+    response = client.post(f"/api/tickets/{ticket_id}/finalize")
+
+    assert response.status_code == 400
+
+
+def test_finalize_endpoint_moves_ticket_to_history(client, db_session):
+    _create_and_login(client, db_session, "admin_fin6", "senha1234", UserRole.ADMIN)
+    project = _create_project(db_session)
+    ticket_id = client.post("/api/tickets", json={"project_id": project.id, "title": "Ticket Fin7"}).json()["id"]
+    client.put(f"/api/tickets/{ticket_id}", json={"status": "concluido"})
+
+    finalize_response = client.post(f"/api/tickets/{ticket_id}/finalize")
+    assert finalize_response.status_code == 200
+    assert finalize_response.json()["finalized_at"] is not None
+
+    active = client.get("/api/tickets").json()
+    history = client.get("/api/tickets?finalized=true").json()
+    assert ticket_id not in [t["id"] for t in active]
+    assert ticket_id in [t["id"] for t in history]
