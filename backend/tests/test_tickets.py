@@ -1,3 +1,5 @@
+import pytest
+
 from app.config import Settings, settings
 from app.models.user import UserRole
 from app.schemas.project import ProjectCreate
@@ -313,3 +315,71 @@ def test_new_ticket_has_no_finalized_at(client, db_session):
 
     assert response.status_code == 201
     assert response.json()["finalized_at"] is None
+
+
+from app.services.ticket_service import (
+    TicketAlreadyFinalizedError,
+    TicketNotFinalizableError,
+    finalize_ticket,
+)
+
+
+def test_finalize_concluded_ticket_sets_finalized_at(client, db_session):
+    admin = _create_and_login(client, db_session, "admin_fin2", "senha1234", UserRole.ADMIN)
+    project = _create_project(db_session)
+    ticket_id = client.post("/api/tickets", json={"project_id": project.id, "title": "Ticket Fin2"}).json()["id"]
+    client.put(f"/api/tickets/{ticket_id}", json={"status": "concluido"})
+
+    ticket = finalize_ticket(db_session, ticket_id)
+
+    assert ticket.finalized_at is not None
+
+
+def test_finalize_open_ticket_raises(client, db_session):
+    admin = _create_and_login(client, db_session, "admin_fin3", "senha1234", UserRole.ADMIN)
+    project = _create_project(db_session)
+    ticket_id = client.post("/api/tickets", json={"project_id": project.id, "title": "Ticket Fin3"}).json()["id"]
+
+    with pytest.raises(TicketNotFinalizableError):
+        finalize_ticket(db_session, ticket_id)
+
+
+def test_finalize_twice_raises(client, db_session):
+    admin = _create_and_login(client, db_session, "admin_fin4", "senha1234", UserRole.ADMIN)
+    project = _create_project(db_session)
+    ticket_id = client.post("/api/tickets", json={"project_id": project.id, "title": "Ticket Fin4"}).json()["id"]
+    client.put(f"/api/tickets/{ticket_id}", json={"status": "cancelado"})
+    finalize_ticket(db_session, ticket_id)
+
+    with pytest.raises(TicketAlreadyFinalizedError):
+        finalize_ticket(db_session, ticket_id)
+
+
+def test_list_tickets_excludes_finalized_by_default(db_session):
+    from app.services.ticket_service import list_tickets, update_ticket
+    from app.schemas.ticket import TicketUpdateIn
+
+    admin = _create_user_direct(db_session)
+    project = _create_project(db_session)
+    from app.services.ticket_service import create_ticket
+    from app.schemas.ticket import TicketCreate
+
+    ticket = create_ticket(db_session, admin.id, TicketCreate(project_id=project.id, title="Ativo"))
+    finalized_ticket = create_ticket(db_session, admin.id, TicketCreate(project_id=project.id, title="Encerrado"))
+    update_ticket(db_session, finalized_ticket.id, admin.id, TicketUpdateIn(status="concluido"))
+    finalize_ticket(db_session, finalized_ticket.id)
+
+    active = list_tickets(db_session)
+    history = list_tickets(db_session, finalized=True)
+
+    assert [t.id for t in active] == [ticket.id]
+    assert [t.id for t in history] == [finalized_ticket.id]
+
+
+def _create_user_direct(db_session):
+    from app.services.user_service import create_user
+    from app.schemas.user import UserCreate
+
+    return create_user(
+        db_session, UserCreate(name="Admin Direto", username="admin_fin_direct", password="senha1234", role=UserRole.ADMIN)
+    )

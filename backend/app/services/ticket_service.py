@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session as DbSession, joinedload
 from app.config import settings
 from app.models.notification import NotificationType
 from app.models.project import Project
-from app.models.ticket import Ticket, TicketAttachment, TicketComment, TicketHistory
+from app.models.ticket import Ticket, TicketAttachment, TicketComment, TicketHistory, TicketStatus
 from app.models.user import User, UserRole
 from app.schemas.ticket import TicketCommentCreate, TicketCreate, TicketUpdateIn
 from app.services.notification_service import notify_users
@@ -32,6 +32,14 @@ class FileTooLargeError(Exception):
     pass
 
 
+class TicketNotFinalizableError(Exception):
+    pass
+
+
+class TicketAlreadyFinalizedError(Exception):
+    pass
+
+
 TRACKED_FIELDS = ("status", "priority", "type")
 
 FIELD_LABELS_PT = {"status": "Status", "priority": "Prioridade", "type": "Tipo"}
@@ -53,6 +61,7 @@ def list_tickets(
     mine_user_id: int | None = None,
     status: str | None = None,
     priority: str | None = None,
+    finalized: bool = False,
 ) -> list[Ticket]:
     query = _ticket_query().order_by(Ticket.created_at.desc())
     if project_id is not None:
@@ -63,6 +72,10 @@ def list_tickets(
         query = query.where(Ticket.status == status)
     if priority is not None:
         query = query.where(Ticket.priority == priority)
+    if finalized:
+        query = query.where(Ticket.finalized_at.is_not(None))
+    else:
+        query = query.where(Ticket.finalized_at.is_(None))
     return list(db.execute(query).unique().scalars())
 
 
@@ -157,6 +170,23 @@ def update_ticket(db: DbSession, ticket_id: int, author_id: int, data: TicketUpd
                 exclude_user_id=author_id,
             )
 
+    return ticket
+
+
+def finalize_ticket(db: DbSession, ticket_id: int) -> Ticket:
+    ticket = db.get(Ticket, ticket_id)
+    if ticket is None:
+        raise TicketNotFoundError(ticket_id)
+    if ticket.status not in (TicketStatus.CONCLUIDO, TicketStatus.CANCELADO):
+        raise TicketNotFinalizableError(ticket_id)
+    if ticket.finalized_at is not None:
+        raise TicketAlreadyFinalizedError(ticket_id)
+
+    from datetime import datetime, timezone
+
+    ticket.finalized_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(ticket)
     return ticket
 
 
