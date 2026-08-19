@@ -42,6 +42,14 @@ export async function updateTicket(ticketId, data) {
   return handleApiResponse(response);
 }
 
+export async function finalizeTicket(ticketId) {
+  const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/finalize`, {
+    method: "POST",
+    credentials: "include",
+  });
+  return handleApiResponse(response);
+}
+
 export async function fetchComments(ticketId) {
   const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/comments`, {
     credentials: "include",

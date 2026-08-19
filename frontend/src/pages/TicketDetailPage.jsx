@@ -11,6 +11,7 @@ import {
   fetchComments,
   fetchHistory,
   fetchTicket,
+  finalizeTicket,
   updateTicket,
   uploadAttachment,
 } from "../services/tickets.js";
@@ -43,6 +44,8 @@ export default function TicketDetailPage() {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
+  const [finalizeError, setFinalizeError] = useState("");
 
   const { data: ticket, isLoading } = useQuery({
     queryKey: ["ticket", ticketId],
@@ -111,6 +114,22 @@ export default function TicketDetailPage() {
     }
   }
 
+  async function handleFinalize() {
+    if (!window.confirm("Finalizar esta solicitação? Ela irá para o histórico e não poderá ser reaberta.")) {
+      return;
+    }
+    setFinalizeError("");
+    setFinalizing(true);
+    try {
+      await finalizeTicket(ticketId);
+      invalidateTicket();
+    } catch (err) {
+      setFinalizeError(err.message || "Não foi possível finalizar a solicitação.");
+    } finally {
+      setFinalizing(false);
+    }
+  }
+
   if (isLoading) {
     return (
       <main className="page">
@@ -140,7 +159,7 @@ export default function TicketDetailPage() {
       <div className="ticket-fields">
         <div>
           <span className="meta">Tipo</span>
-          {isAdmin ? (
+          {isAdmin && !ticket.finalized_at ? (
             <select value={ticket.type} onChange={(e) => handleFieldChange("type", e.target.value)}>
               {TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -155,7 +174,7 @@ export default function TicketDetailPage() {
 
         <div>
           <span className="meta">Prioridade</span>
-          {isAdmin ? (
+          {isAdmin && !ticket.finalized_at ? (
             <select value={ticket.priority} onChange={(e) => handleFieldChange("priority", e.target.value)}>
               {PRIORITY_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -170,7 +189,7 @@ export default function TicketDetailPage() {
 
         <div>
           <span className="meta">Status</span>
-          {isAdmin ? (
+          {isAdmin && !ticket.finalized_at ? (
             <select value={ticket.status} onChange={(e) => handleFieldChange("status", e.target.value)}>
               {STATUS_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -183,6 +202,18 @@ export default function TicketDetailPage() {
           )}
         </div>
       </div>
+
+      {isAdmin && !ticket.finalized_at && (ticket.status === "concluido" || ticket.status === "cancelado") && (
+        <div className="page-actions">
+          <button type="button" onClick={handleFinalize} disabled={finalizing}>
+            {finalizing ? "Finalizando..." : "Finalizar"}
+          </button>
+        </div>
+      )}
+      {ticket.finalized_at && (
+        <p className="meta">Finalizada em {new Date(ticket.finalized_at).toLocaleString("pt-BR")}</p>
+      )}
+      {finalizeError && <p className="error">{finalizeError}</p>}
 
       <p>{ticket.description || "Sem descrição."}</p>
       <p className="meta">Aberto por {ticket.author ? ticket.author.name : "—"}</p>
