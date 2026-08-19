@@ -303,3 +303,13 @@ def test_operador_cannot_download_attachment_from_others_ticket(client, db_sessi
     response = client.get(f"/api/tickets/{ticket_id}/attachments/{attachment_id}/download")
 
     assert response.status_code == 403
+
+
+def test_new_ticket_has_no_finalized_at(client, db_session):
+    _create_and_login(client, db_session, "admin_fin", "senha1234", UserRole.ADMIN)
+    project = _create_project(db_session)
+
+    response = client.post("/api/tickets", json={"project_id": project.id, "title": "Ticket Fin"})
+
+    assert response.status_code == 201
+    assert response.json()["finalized_at"] is None
