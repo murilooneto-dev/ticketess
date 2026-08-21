@@ -22,6 +22,10 @@ class ProjectIdea(Base):
     status: Mapped[ProjectIdeaStatus] = mapped_column(
         Enum(ProjectIdeaStatus), nullable=False, default=ProjectIdeaStatus.PENDENTE
     )
+    project_id: Mapped[int | None] = mapped_column(
+        ForeignKey("projects.id", ondelete="SET NULL"), nullable=True
+    )
+    rejection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
@@ -29,3 +33,4 @@ class ProjectIdea(Base):
     )
 
     author: Mapped["User"] = relationship(foreign_keys=[created_by])
+    project: Mapped["Project | None"] = relationship()

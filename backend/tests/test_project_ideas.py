@@ -186,3 +186,28 @@ def test_change_status_of_unknown_idea_returns_404(client, db_session):
     response = client.patch("/api/project-ideas/9999", json={"status": "rejeitada"})
 
     assert response.status_code == 404
+
+
+def test_project_idea_model_persists_project_and_rejection_reason(db_session):
+    from app.models.project import Project
+
+    user = _create_user(db_session, "gestor_proj_field", UserRole.GESTOR)
+    project = Project(name="Projeto X")
+    db_session.add(project)
+    db_session.commit()
+    db_session.refresh(project)
+
+    idea = ProjectIdea(
+        title="Ideia com projeto",
+        description="desc",
+        created_by=user.id,
+        project_id=project.id,
+        rejection_reason="Fora do escopo atual",
+    )
+    db_session.add(idea)
+    db_session.commit()
+    db_session.refresh(idea)
+
+    assert idea.project_id == project.id
+    assert idea.project.name == "Projeto X"
+    assert idea.rejection_reason == "Fora do escopo atual"
