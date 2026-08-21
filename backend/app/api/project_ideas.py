@@ -7,6 +7,7 @@ from app.schemas.project_idea import ProjectIdeaCreate, ProjectIdeaOut, ProjectI
 from app.security.dependencies import get_current_user, require_admin
 from app.services.project_idea_service import (
     ProjectIdeaNotFoundError,
+    ProjectNotFoundError,
     create_project_idea,
     list_project_ideas,
     update_project_idea_status,
@@ -29,7 +30,10 @@ def post_project_idea(
     db: DbSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return create_project_idea(db, current_user.id, payload)
+    try:
+        return create_project_idea(db, current_user.id, payload)
+    except ProjectNotFoundError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Projeto informado não existe")
 
 
 @router.patch("/{idea_id}", response_model=ProjectIdeaOut)

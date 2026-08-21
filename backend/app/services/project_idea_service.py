@@ -2,6 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session as DbSession, joinedload
 
 from app.models.notification import NotificationType
+from app.models.project import Project
 from app.models.project_idea import ProjectIdea, ProjectIdeaStatus
 from app.models.user import User, UserRole
 from app.schemas.project_idea import ProjectIdeaCreate
@@ -19,12 +20,19 @@ class ProjectIdeaNotFoundError(Exception):
     pass
 
 
+class ProjectNotFoundError(Exception):
+    pass
+
+
 def _idea_query():
-    return select(ProjectIdea).options(joinedload(ProjectIdea.author))
+    return select(ProjectIdea).options(joinedload(ProjectIdea.author), joinedload(ProjectIdea.project))
 
 
 def create_project_idea(db: DbSession, author_id: int, data: ProjectIdeaCreate) -> ProjectIdea:
-    idea = ProjectIdea(title=data.title, description=data.description, created_by=author_id)
+    if db.get(Project, data.project_id) is None:
+        raise ProjectNotFoundError(data.project_id)
+
+    idea = ProjectIdea(title=data.title, description=data.description, created_by=author_id, project_id=data.project_id)
     db.add(idea)
     db.commit()
     db.refresh(idea)

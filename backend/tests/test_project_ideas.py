@@ -20,6 +20,16 @@ def _create_user(db_session, username, role):
     )
 
 
+def _create_project(db_session, name="Projeto Teste"):
+    from app.models.project import Project
+
+    project = Project(name=name)
+    db_session.add(project)
+    db_session.commit()
+    db_session.refresh(project)
+    return project
+
+
 def test_project_idea_model_persists_with_default_status(db_session):
     user = _create_user(db_session, "gestor_model", UserRole.GESTOR)
 
@@ -36,9 +46,10 @@ def test_project_idea_model_persists_with_default_status(db_session):
 def test_create_project_idea_notifies_admins(db_session):
     admin = _create_user(db_session, "admin_svc", UserRole.ADMIN)
     author = _create_user(db_session, "operador_svc", UserRole.OPERADOR)
+    project = _create_project(db_session)
 
     idea = create_project_idea(
-        db_session, author.id, ProjectIdeaCreate(title="Portal do cliente", description="Ideia legal")
+        db_session, author.id, ProjectIdeaCreate(title="Portal do cliente", description="Ideia legal", project_id=project.id)
     )
 
     assert idea.status == ProjectIdeaStatus.PENDENTE
@@ -51,9 +62,10 @@ def test_list_project_ideas_scoped_by_role(db_session):
     admin = _create_user(db_session, "admin_svc2", UserRole.ADMIN)
     gestor = _create_user(db_session, "gestor_svc2", UserRole.GESTOR)
     operador = _create_user(db_session, "operador_svc2", UserRole.OPERADOR)
+    project = _create_project(db_session)
 
-    create_project_idea(db_session, gestor.id, ProjectIdeaCreate(title="Ideia A", description="desc"))
-    create_project_idea(db_session, operador.id, ProjectIdeaCreate(title="Ideia B", description="desc"))
+    create_project_idea(db_session, gestor.id, ProjectIdeaCreate(title="Ideia A", description="desc", project_id=project.id))
+    create_project_idea(db_session, operador.id, ProjectIdeaCreate(title="Ideia B", description="desc", project_id=project.id))
 
     admin_view = list_project_ideas(db_session, admin)
     gestor_view = list_project_ideas(db_session, gestor)
@@ -66,7 +78,8 @@ def test_list_project_ideas_scoped_by_role(db_session):
 def test_update_project_idea_status_notifies_author(db_session):
     admin = _create_user(db_session, "admin_svc3", UserRole.ADMIN)
     author = _create_user(db_session, "gestor_svc3", UserRole.GESTOR)
-    idea = create_project_idea(db_session, author.id, ProjectIdeaCreate(title="Ideia C", description="desc"))
+    project = _create_project(db_session)
+    idea = create_project_idea(db_session, author.id, ProjectIdeaCreate(title="Ideia C", description="desc", project_id=project.id))
 
     updated = update_project_idea_status(db_session, idea.id, ProjectIdeaStatus.APROVADA, admin.id)
 
@@ -84,7 +97,8 @@ def test_update_nonexistent_idea_raises(db_session):
 def test_repeated_status_update_does_not_duplicate_notification(db_session):
     admin = _create_user(db_session, "admin_svc5", UserRole.ADMIN)
     author = _create_user(db_session, "gestor_svc5", UserRole.GESTOR)
-    idea = create_project_idea(db_session, author.id, ProjectIdeaCreate(title="Ideia D", description="desc"))
+    project = _create_project(db_session)
+    idea = create_project_idea(db_session, author.id, ProjectIdeaCreate(title="Ideia D", description="desc", project_id=project.id))
 
     update_project_idea_status(db_session, idea.id, ProjectIdeaStatus.APROVADA, admin.id)
     update_project_idea_status(db_session, idea.id, ProjectIdeaStatus.APROVADA, admin.id)
@@ -95,7 +109,8 @@ def test_repeated_status_update_does_not_duplicate_notification(db_session):
 
 def test_admin_approving_own_idea_does_not_self_notify(db_session):
     admin = _create_user(db_session, "admin_svc6", UserRole.ADMIN)
-    idea = create_project_idea(db_session, admin.id, ProjectIdeaCreate(title="Ideia E", description="desc"))
+    project = _create_project(db_session)
+    idea = create_project_idea(db_session, admin.id, ProjectIdeaCreate(title="Ideia E", description="desc", project_id=project.id))
 
     update_project_idea_status(db_session, idea.id, ProjectIdeaStatus.APROVADA, admin.id)
 
@@ -111,8 +126,12 @@ def _create_and_login(client, db_session, username, password, role):
 
 def test_operador_can_submit_idea_via_api(client, db_session):
     _create_and_login(client, db_session, "operador_api", "senha1234", UserRole.OPERADOR)
+    project = _create_project(db_session)
 
-    response = client.post("/api/project-ideas", json={"title": "App interno", "description": "Facilita o dia a dia"})
+    response = client.post(
+        "/api/project-ideas",
+        json={"title": "App interno", "description": "Facilita o dia a dia", "project_id": project.id},
+    )
 
     assert response.status_code == 201
     body = response.json()
@@ -122,12 +141,17 @@ def test_operador_can_submit_idea_via_api(client, db_session):
 
 
 def test_non_admin_sees_only_own_ideas_via_api(client, db_session):
+    project = _create_project(db_session)
     _create_and_login(client, db_session, "gestor_api", "senha1234", UserRole.GESTOR)
-    client.post("/api/project-ideas", json={"title": "Ideia do gestor", "description": "desc"})
+    client.post(
+        "/api/project-ideas", json={"title": "Ideia do gestor", "description": "desc", "project_id": project.id}
+    )
 
     client.post("/api/auth/logout")
     _create_and_login(client, db_session, "operador_api2", "senha1234", UserRole.OPERADOR)
-    client.post("/api/project-ideas", json={"title": "Ideia do operador", "description": "desc"})
+    client.post(
+        "/api/project-ideas", json={"title": "Ideia do operador", "description": "desc", "project_id": project.id}
+    )
 
     response = client.get("/api/project-ideas")
 
@@ -137,12 +161,13 @@ def test_non_admin_sees_only_own_ideas_via_api(client, db_session):
 
 
 def test_admin_sees_all_ideas_via_api(client, db_session):
+    project = _create_project(db_session)
     _create_and_login(client, db_session, "admin_api", "senha1234", UserRole.ADMIN)
-    client.post("/api/project-ideas", json={"title": "Ideia 1", "description": "desc"})
+    client.post("/api/project-ideas", json={"title": "Ideia 1", "description": "desc", "project_id": project.id})
 
     client.post("/api/auth/logout")
     _create_and_login(client, db_session, "gestor_api2", "senha1234", UserRole.GESTOR)
-    client.post("/api/project-ideas", json={"title": "Ideia 2", "description": "desc"})
+    client.post("/api/project-ideas", json={"title": "Ideia 2", "description": "desc", "project_id": project.id})
 
     client.post("/api/auth/logout")
     client.post("/api/auth/login", json={"username": "admin_api", "password": "senha1234"})
@@ -153,8 +178,11 @@ def test_admin_sees_all_ideas_via_api(client, db_session):
 
 
 def test_non_admin_cannot_change_idea_status(client, db_session):
+    project = _create_project(db_session)
     _create_and_login(client, db_session, "gestor_api3", "senha1234", UserRole.GESTOR)
-    idea_id = client.post("/api/project-ideas", json={"title": "Ideia 3", "description": "desc"}).json()["id"]
+    idea_id = client.post(
+        "/api/project-ideas", json={"title": "Ideia 3", "description": "desc", "project_id": project.id}
+    ).json()["id"]
 
     response = client.patch(f"/api/project-ideas/{idea_id}", json={"status": "aprovada"})
 
@@ -162,11 +190,14 @@ def test_non_admin_cannot_change_idea_status(client, db_session):
 
 
 def test_admin_approves_idea_and_author_is_notified(client, db_session):
+    project = _create_project(db_session)
     _create_and_login(client, db_session, "admin_api2", "senha1234", UserRole.ADMIN)
 
     client.post("/api/auth/logout")
     _create_and_login(client, db_session, "operador_api3", "senha1234", UserRole.OPERADOR)
-    idea_id = client.post("/api/project-ideas", json={"title": "Ideia 4", "description": "desc"}).json()["id"]
+    idea_id = client.post(
+        "/api/project-ideas", json={"title": "Ideia 4", "description": "desc", "project_id": project.id}
+    ).json()["id"]
 
     client.post("/api/auth/logout")
     client.post("/api/auth/login", json={"username": "admin_api2", "password": "senha1234"})
@@ -211,3 +242,11 @@ def test_project_idea_model_persists_project_and_rejection_reason(db_session):
     assert idea.project_id == project.id
     assert idea.project.name == "Projeto X"
     assert idea.rejection_reason == "Fora do escopo atual"
+
+
+def test_create_idea_with_invalid_project_fails(client, db_session):
+    _create_and_login(client, db_session, "gestor_badproj", "senha1234", UserRole.GESTOR)
+
+    response = client.post("/api/project-ideas", json={"title": "Ideia", "description": "desc", "project_id": 9999})
+
+    assert response.status_code == 400
