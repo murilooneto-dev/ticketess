@@ -6,6 +6,7 @@ from app.schemas.project_idea import ProjectIdeaCreate
 from app.schemas.user import UserCreate
 from app.services.notification_service import list_notifications
 from app.services.project_idea_service import (
+    ProjectIdeaMissingProjectError,
     ProjectIdeaNotFoundError,
     create_project_idea,
     list_project_ideas,
@@ -250,3 +251,59 @@ def test_create_idea_with_invalid_project_fails(client, db_session):
     response = client.post("/api/project-ideas", json={"title": "Ideia", "description": "desc", "project_id": 9999})
 
     assert response.status_code == 400
+
+
+def test_approving_idea_creates_ticket_and_notifies_author(db_session):
+    admin = _create_user(db_session, "admin_approve1", UserRole.ADMIN)
+    author = _create_user(db_session, "gestor_approve1", UserRole.GESTOR)
+    project = _create_project(db_session)
+    idea = create_project_idea(
+        db_session, author.id, ProjectIdeaCreate(title="Ideia F", description="Descrição F", project_id=project.id)
+    )
+
+    updated = update_project_idea_status(db_session, idea.id, ProjectIdeaStatus.APROVADA, admin.id)
+
+    from app.models.ticket import Ticket
+
+    tickets = db_session.query(Ticket).filter(Ticket.project_id == project.id).all()
+    assert len(tickets) == 1
+    assert tickets[0].title == "Ideia F"
+    assert tickets[0].description == "Descrição F"
+    assert tickets[0].created_by == author.id
+
+    notifications = list_notifications(db_session, author.id)
+    approved_notifications = [n for n in notifications if "Ideia aprovada" in n.title]
+    assert len(approved_notifications) == 1
+    assert approved_notifications[0].link == f"/tickets/{tickets[0].id}"
+
+
+def test_approving_idea_without_project_requires_project_id(db_session):
+    from app.models.project_idea import ProjectIdea
+
+    admin = _create_user(db_session, "admin_approve2", UserRole.ADMIN)
+    author = _create_user(db_session, "gestor_approve2", UserRole.GESTOR)
+    idea = ProjectIdea(title="Ideia legada", description="desc", created_by=author.id)
+    db_session.add(idea)
+    db_session.commit()
+    db_session.refresh(idea)
+
+    with pytest.raises(ProjectIdeaMissingProjectError):
+        update_project_idea_status(db_session, idea.id, ProjectIdeaStatus.APROVADA, admin.id)
+
+
+def test_approving_legacy_idea_with_supplied_project_id_succeeds(db_session):
+    from app.models.project_idea import ProjectIdea
+
+    admin = _create_user(db_session, "admin_approve3", UserRole.ADMIN)
+    author = _create_user(db_session, "gestor_approve3", UserRole.GESTOR)
+    project = _create_project(db_session)
+    idea = ProjectIdea(title="Ideia legada 2", description="desc", created_by=author.id)
+    db_session.add(idea)
+    db_session.commit()
+    db_session.refresh(idea)
+
+    updated = update_project_idea_status(
+        db_session, idea.id, ProjectIdeaStatus.APROVADA, admin.id, project_id=project.id
+    )
+
+    assert updated.project_id == project.id
