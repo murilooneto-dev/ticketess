@@ -419,3 +419,15 @@ def test_finalize_endpoint_moves_ticket_to_history(client, db_session):
     history = client.get("/api/tickets?finalized=true").json()
     assert ticket_id not in [t["id"] for t in active]
     assert ticket_id in [t["id"] for t in history]
+
+
+def test_cannot_update_finalized_ticket(client, db_session):
+    _create_and_login(client, db_session, "admin_fin7", "senha1234", UserRole.ADMIN)
+    project = _create_project(db_session)
+    ticket_id = client.post("/api/tickets", json={"project_id": project.id, "title": "Ticket Fin8"}).json()["id"]
+    client.put(f"/api/tickets/{ticket_id}", json={"status": "concluido"})
+    client.post(f"/api/tickets/{ticket_id}/finalize")
+
+    response = client.put(f"/api/tickets/{ticket_id}", json={"status": "cancelado"})
+
+    assert response.status_code == 400

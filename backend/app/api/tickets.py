@@ -103,6 +103,10 @@ def put_ticket(
         return update_ticket(db, ticket_id, current_user.id, payload)
     except TicketNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket não encontrado")
+    except TicketAlreadyFinalizedError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Não é possível editar uma solicitação já finalizada"
+        )
 
 
 @router.post("/{ticket_id}/finalize", response_model=TicketOut)

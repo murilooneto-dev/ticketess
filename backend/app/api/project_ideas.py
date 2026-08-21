@@ -14,6 +14,7 @@ from app.services.project_idea_service import (
     list_project_ideas,
     update_project_idea_status,
 )
+from app.services.ticket_service import ProjectNotFoundError as TicketProjectNotFoundError
 
 router = APIRouter(prefix="/api/project-ideas", tags=["project-ideas"])
 
@@ -60,7 +61,7 @@ def patch_project_idea_status(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Selecione um projeto para aprovar esta ideia"
         )
-    except ProjectNotFoundError:
+    except (ProjectNotFoundError, TicketProjectNotFoundError):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Projeto informado não existe")
     except ProjectIdeaRejectionReasonRequiredError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe o motivo da rejeição")

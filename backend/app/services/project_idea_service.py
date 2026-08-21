@@ -9,13 +9,6 @@ from app.schemas.project_idea import ProjectIdeaCreate
 from app.services.notification_service import notify_users
 from app.services.user_service import list_admins
 
-STATUS_LABELS_PT = {
-    ProjectIdeaStatus.PENDENTE: "pendente",
-    ProjectIdeaStatus.APROVADA: "aprovada",
-    ProjectIdeaStatus.REJEITADA: "rejeitada",
-}
-
-
 class ProjectIdeaNotFoundError(Exception):
     pass
 
@@ -95,6 +88,7 @@ def update_project_idea_status(
             idea.created_by,
             TicketCreate(project_id=resolved_project_id, title=idea.title, description=idea.description),
         )
+        idea.generated_ticket_id = created_ticket.id
     elif status == ProjectIdeaStatus.REJEITADA:
         if not rejection_reason or not rejection_reason.strip():
             raise ProjectIdeaRejectionReasonRequiredError(idea_id)

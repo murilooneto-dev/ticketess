@@ -118,6 +118,8 @@ def update_ticket(db: DbSession, ticket_id: int, author_id: int, data: TicketUpd
     ticket = db.get(Ticket, ticket_id)
     if ticket is None:
         raise TicketNotFoundError(ticket_id)
+    if ticket.finalized_at is not None:
+        raise TicketAlreadyFinalizedError(ticket_id)
 
     updates = data.model_dump(exclude_unset=True)
     changes: list[str] = []

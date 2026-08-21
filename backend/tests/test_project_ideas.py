@@ -366,3 +366,41 @@ def test_reject_endpoint_with_reason_succeeds(client, db_session):
 
     assert response.status_code == 200
     assert response.json()["rejection_reason"] == "Duplicada"
+
+
+def test_approving_legacy_idea_with_nonexistent_project_returns_400(client, db_session):
+    _create_and_login(client, db_session, "admin_badproj2", "senha1234", UserRole.ADMIN)
+    author = _create_user(db_session, "gestor_badproj2", UserRole.GESTOR)
+    idea = ProjectIdea(title="Ideia legada 3", description="desc", created_by=author.id)
+    db_session.add(idea)
+    db_session.commit()
+    db_session.refresh(idea)
+
+    response = client.patch(
+        f"/api/project-ideas/{idea.id}", json={"status": "aprovada", "project_id": 9999}
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Projeto informado não existe"
+
+
+def test_approving_idea_sets_generated_ticket_id(client, db_session):
+    _create_and_login(client, db_session, "admin_genticket", "senha1234", UserRole.ADMIN)
+    author = _create_user(db_session, "gestor_genticket", UserRole.GESTOR)
+    project = _create_project(db_session)
+    idea = create_project_idea(
+        db_session, author.id, ProjectIdeaCreate(title="Ideia K", description="desc", project_id=project.id)
+    )
+
+    updated = update_project_idea_status(db_session, idea.id, ProjectIdeaStatus.APROVADA, author.id)
+
+    assert updated.generated_ticket_id is not None
+
+    idea2 = create_project_idea(
+        db_session, author.id, ProjectIdeaCreate(title="Ideia L", description="desc", project_id=project.id)
+    )
+    http_response = client.patch(f"/api/project-ideas/{idea2.id}", json={"status": "aprovada"})
+
+    assert http_response.status_code == 200
+    body = http_response.json()
+    assert body["generated_ticket_id"] is not None

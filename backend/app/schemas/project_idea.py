@@ -35,5 +35,6 @@ class ProjectIdeaOut(BaseModel):
     author: UserOut | None
     project: ProjectIdeaProjectOut | None
     rejection_reason: str | None
+    generated_ticket_id: int | None
     created_at: datetime
     updated_at: datetime

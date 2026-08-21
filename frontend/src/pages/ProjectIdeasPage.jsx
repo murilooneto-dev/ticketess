@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "../context/AuthContext.jsx";
@@ -186,7 +187,10 @@ export default function ProjectIdeasPage() {
                 </td>
                 {tab === "historico" && (
                   <td>
-                    {idea.status === "aprovada" && idea.project && <span>Projeto: {idea.project.name}</span>}
+                    {idea.status === "aprovada" && idea.project && <span>Projeto: {idea.project.name}</span>}{" "}
+                    {idea.status === "aprovada" && idea.generated_ticket_id && (
+                      <Link to={`/tickets/${idea.generated_ticket_id}`}>Ver solicitação</Link>
+                    )}
                     {idea.status === "rejeitada" && idea.rejection_reason && <span>{idea.rejection_reason}</span>}
                   </td>
                 )}
