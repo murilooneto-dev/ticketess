@@ -8,6 +8,7 @@ from app.services.notification_service import list_notifications
 from app.services.project_idea_service import (
     ProjectIdeaMissingProjectError,
     ProjectIdeaNotFoundError,
+    ProjectIdeaRejectionReasonRequiredError,
     create_project_idea,
     list_project_ideas,
     update_project_idea_status,
@@ -307,3 +308,61 @@ def test_approving_legacy_idea_with_supplied_project_id_succeeds(db_session):
     )
 
     assert updated.project_id == project.id
+
+
+def test_rejecting_idea_without_reason_raises(db_session):
+    admin = _create_user(db_session, "admin_reject1", UserRole.ADMIN)
+    author = _create_user(db_session, "gestor_reject1", UserRole.GESTOR)
+    project = _create_project(db_session)
+    idea = create_project_idea(
+        db_session, author.id, ProjectIdeaCreate(title="Ideia G", description="desc", project_id=project.id)
+    )
+
+    with pytest.raises(ProjectIdeaRejectionReasonRequiredError):
+        update_project_idea_status(db_session, idea.id, ProjectIdeaStatus.REJEITADA, admin.id)
+
+
+def test_rejecting_idea_with_reason_notifies_author(db_session):
+    admin = _create_user(db_session, "admin_reject2", UserRole.ADMIN)
+    author = _create_user(db_session, "gestor_reject2", UserRole.GESTOR)
+    project = _create_project(db_session)
+    idea = create_project_idea(
+        db_session, author.id, ProjectIdeaCreate(title="Ideia H", description="desc", project_id=project.id)
+    )
+
+    updated = update_project_idea_status(
+        db_session, idea.id, ProjectIdeaStatus.REJEITADA, admin.id, rejection_reason="Fora do orçamento deste trimestre"
+    )
+
+    assert updated.rejection_reason == "Fora do orçamento deste trimestre"
+    notifications = list_notifications(db_session, author.id)
+    rejected = [n for n in notifications if "Ideia rejeitada" in n.title]
+    assert len(rejected) == 1
+    assert "Fora do orçamento deste trimestre" in rejected[0].message
+
+
+def test_reject_endpoint_requires_reason(client, db_session):
+    _create_and_login(client, db_session, "admin_reject3", "senha1234", UserRole.ADMIN)
+    project = _create_project(db_session)
+    idea_id = client.post(
+        "/api/project-ideas", json={"title": "Ideia I", "description": "desc", "project_id": project.id}
+    ).json()["id"]
+
+    response = client.patch(f"/api/project-ideas/{idea_id}", json={"status": "rejeitada"})
+
+    assert response.status_code == 400
+
+
+def test_reject_endpoint_with_reason_succeeds(client, db_session):
+    _create_and_login(client, db_session, "admin_reject4", "senha1234", UserRole.ADMIN)
+    project = _create_project(db_session)
+    idea_id = client.post(
+        "/api/project-ideas", json={"title": "Ideia J", "description": "desc", "project_id": project.id}
+    ).json()["id"]
+
+    response = client.patch(
+        f"/api/project-ideas/{idea_id}", json={"status": "rejeitada", "rejection_reason": "Duplicada"}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["rejection_reason"] == "Duplicada"

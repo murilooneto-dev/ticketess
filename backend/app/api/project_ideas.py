@@ -8,6 +8,7 @@ from app.security.dependencies import get_current_user, require_admin
 from app.services.project_idea_service import (
     ProjectIdeaMissingProjectError,
     ProjectIdeaNotFoundError,
+    ProjectIdeaRejectionReasonRequiredError,
     ProjectNotFoundError,
     create_project_idea,
     list_project_ideas,
@@ -61,3 +62,5 @@ def patch_project_idea_status(
         )
     except ProjectNotFoundError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Projeto informado não existe")
+    except ProjectIdeaRejectionReasonRequiredError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe o motivo da rejeição")
