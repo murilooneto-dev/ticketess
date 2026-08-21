@@ -19,15 +19,17 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column('project_ideas', sa.Column('generated_ticket_id', sa.Integer(), nullable=True))
-    op.create_foreign_key(
-        'fk_project_ideas_generated_ticket_id_tickets',
-        'project_ideas', 'tickets',
-        ['generated_ticket_id'], ['id'],
-        ondelete='SET NULL',
-    )
+    with op.batch_alter_table('project_ideas') as batch_op:
+        batch_op.add_column(sa.Column('generated_ticket_id', sa.Integer(), nullable=True))
+        batch_op.create_foreign_key(
+            'fk_project_ideas_generated_ticket_id_tickets',
+            'tickets',
+            ['generated_ticket_id'], ['id'],
+            ondelete='SET NULL',
+        )
 
 
 def downgrade() -> None:
-    op.drop_constraint('fk_project_ideas_generated_ticket_id_tickets', 'project_ideas', type_='foreignkey')
-    op.drop_column('project_ideas', 'generated_ticket_id')
+    with op.batch_alter_table('project_ideas') as batch_op:
+        batch_op.drop_constraint('fk_project_ideas_generated_ticket_id_tickets', type_='foreignkey')
+        batch_op.drop_column('generated_ticket_id')

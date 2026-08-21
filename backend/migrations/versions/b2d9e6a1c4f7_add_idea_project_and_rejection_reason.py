@@ -19,17 +19,19 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column('project_ideas', sa.Column('project_id', sa.Integer(), nullable=True))
-    op.add_column('project_ideas', sa.Column('rejection_reason', sa.Text(), nullable=True))
-    op.create_foreign_key(
-        'fk_project_ideas_project_id_projects',
-        'project_ideas', 'projects',
-        ['project_id'], ['id'],
-        ondelete='SET NULL',
-    )
+    with op.batch_alter_table('project_ideas') as batch_op:
+        batch_op.add_column(sa.Column('project_id', sa.Integer(), nullable=True))
+        batch_op.add_column(sa.Column('rejection_reason', sa.Text(), nullable=True))
+        batch_op.create_foreign_key(
+            'fk_project_ideas_project_id_projects',
+            'projects',
+            ['project_id'], ['id'],
+            ondelete='SET NULL',
+        )
 
 
 def downgrade() -> None:
-    op.drop_constraint('fk_project_ideas_project_id_projects', 'project_ideas', type_='foreignkey')
-    op.drop_column('project_ideas', 'rejection_reason')
-    op.drop_column('project_ideas', 'project_id')
+    with op.batch_alter_table('project_ideas') as batch_op:
+        batch_op.drop_constraint('fk_project_ideas_project_id_projects', type_='foreignkey')
+        batch_op.drop_column('rejection_reason')
+        batch_op.drop_column('project_id')
