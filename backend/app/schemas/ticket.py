@@ -34,6 +34,7 @@ class TicketListItemOut(BaseModel):
     author: UserOut | None
     created_at: datetime
     updated_at: datetime
+    finalized_at: datetime | None
 
 
 class TicketOut(TicketListItemOut):

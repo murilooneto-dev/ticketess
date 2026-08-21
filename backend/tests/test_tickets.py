@@ -1,3 +1,5 @@
+import pytest
+
 from app.config import Settings, settings
 from app.models.user import UserRole
 from app.schemas.project import ProjectCreate
@@ -303,3 +305,129 @@ def test_operador_cannot_download_attachment_from_others_ticket(client, db_sessi
     response = client.get(f"/api/tickets/{ticket_id}/attachments/{attachment_id}/download")
 
     assert response.status_code == 403
+
+
+def test_new_ticket_has_no_finalized_at(client, db_session):
+    _create_and_login(client, db_session, "admin_fin", "senha1234", UserRole.ADMIN)
+    project = _create_project(db_session)
+
+    response = client.post("/api/tickets", json={"project_id": project.id, "title": "Ticket Fin"})
+
+    assert response.status_code == 201
+    assert response.json()["finalized_at"] is None
+
+
+from app.services.ticket_service import (
+    TicketAlreadyFinalizedError,
+    TicketNotFinalizableError,
+    finalize_ticket,
+)
+
+
+def test_finalize_concluded_ticket_sets_finalized_at(client, db_session):
+    admin = _create_and_login(client, db_session, "admin_fin2", "senha1234", UserRole.ADMIN)
+    project = _create_project(db_session)
+    ticket_id = client.post("/api/tickets", json={"project_id": project.id, "title": "Ticket Fin2"}).json()["id"]
+    client.put(f"/api/tickets/{ticket_id}", json={"status": "concluido"})
+
+    ticket = finalize_ticket(db_session, ticket_id)
+
+    assert ticket.finalized_at is not None
+
+
+def test_finalize_open_ticket_raises(client, db_session):
+    admin = _create_and_login(client, db_session, "admin_fin3", "senha1234", UserRole.ADMIN)
+    project = _create_project(db_session)
+    ticket_id = client.post("/api/tickets", json={"project_id": project.id, "title": "Ticket Fin3"}).json()["id"]
+
+    with pytest.raises(TicketNotFinalizableError):
+        finalize_ticket(db_session, ticket_id)
+
+
+def test_finalize_twice_raises(client, db_session):
+    admin = _create_and_login(client, db_session, "admin_fin4", "senha1234", UserRole.ADMIN)
+    project = _create_project(db_session)
+    ticket_id = client.post("/api/tickets", json={"project_id": project.id, "title": "Ticket Fin4"}).json()["id"]
+    client.put(f"/api/tickets/{ticket_id}", json={"status": "cancelado"})
+    finalize_ticket(db_session, ticket_id)
+
+    with pytest.raises(TicketAlreadyFinalizedError):
+        finalize_ticket(db_session, ticket_id)
+
+
+def test_list_tickets_excludes_finalized_by_default(db_session):
+    from app.services.ticket_service import list_tickets, update_ticket
+    from app.schemas.ticket import TicketUpdateIn
+
+    admin = _create_user_direct(db_session)
+    project = _create_project(db_session)
+    from app.services.ticket_service import create_ticket
+    from app.schemas.ticket import TicketCreate
+
+    ticket = create_ticket(db_session, admin.id, TicketCreate(project_id=project.id, title="Ativo"))
+    finalized_ticket = create_ticket(db_session, admin.id, TicketCreate(project_id=project.id, title="Encerrado"))
+    update_ticket(db_session, finalized_ticket.id, admin.id, TicketUpdateIn(status="concluido"))
+    finalize_ticket(db_session, finalized_ticket.id)
+
+    active = list_tickets(db_session)
+    history = list_tickets(db_session, finalized=True)
+
+    assert [t.id for t in active] == [ticket.id]
+    assert [t.id for t in history] == [finalized_ticket.id]
+
+
+def _create_user_direct(db_session):
+    from app.services.user_service import create_user
+    from app.schemas.user import UserCreate
+
+    return create_user(
+        db_session, UserCreate(name="Admin Direto", username="admin_fin_direct", password="senha1234", role=UserRole.ADMIN)
+    )
+
+
+def test_finalize_endpoint_requires_admin(client, db_session):
+    _create_and_login(client, db_session, "gestor_fin", "senha1234", UserRole.GESTOR)
+    project = _create_project(db_session)
+    ticket_id = client.post("/api/tickets", json={"project_id": project.id, "title": "Ticket Fin5"}).json()["id"]
+
+    response = client.post(f"/api/tickets/{ticket_id}/finalize")
+
+    assert response.status_code == 403
+
+
+def test_finalize_endpoint_rejects_open_ticket(client, db_session):
+    _create_and_login(client, db_session, "admin_fin5", "senha1234", UserRole.ADMIN)
+    project = _create_project(db_session)
+    ticket_id = client.post("/api/tickets", json={"project_id": project.id, "title": "Ticket Fin6"}).json()["id"]
+
+    response = client.post(f"/api/tickets/{ticket_id}/finalize")
+
+    assert response.status_code == 400
+
+
+def test_finalize_endpoint_moves_ticket_to_history(client, db_session):
+    _create_and_login(client, db_session, "admin_fin6", "senha1234", UserRole.ADMIN)
+    project = _create_project(db_session)
+    ticket_id = client.post("/api/tickets", json={"project_id": project.id, "title": "Ticket Fin7"}).json()["id"]
+    client.put(f"/api/tickets/{ticket_id}", json={"status": "concluido"})
+
+    finalize_response = client.post(f"/api/tickets/{ticket_id}/finalize")
+    assert finalize_response.status_code == 200
+    assert finalize_response.json()["finalized_at"] is not None
+
+    active = client.get("/api/tickets").json()
+    history = client.get("/api/tickets?finalized=true").json()
+    assert ticket_id not in [t["id"] for t in active]
+    assert ticket_id in [t["id"] for t in history]
+
+
+def test_cannot_update_finalized_ticket(client, db_session):
+    _create_and_login(client, db_session, "admin_fin7", "senha1234", UserRole.ADMIN)
+    project = _create_project(db_session)
+    ticket_id = client.post("/api/tickets", json={"project_id": project.id, "title": "Ticket Fin8"}).json()["id"]
+    client.put(f"/api/tickets/{ticket_id}", json={"status": "concluido"})
+    client.post(f"/api/tickets/{ticket_id}/finalize")
+
+    response = client.put(f"/api/tickets/{ticket_id}", json={"status": "cancelado"})
+
+    assert response.status_code == 400

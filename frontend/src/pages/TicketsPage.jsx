@@ -12,10 +12,12 @@ export default function TicketsPage() {
   const [onlyMine, setOnlyMine] = useState(false);
   const [status, setStatus] = useState("");
   const [priority, setPriority] = useState("");
+  const [tab, setTab] = useState("ativas");
 
   const { data: tickets, isLoading, isError } = useQuery({
-    queryKey: ["tickets", onlyMine, status, priority],
-    queryFn: () => fetchTickets({ mine: onlyMine, status: status || undefined, priority: priority || undefined }),
+    queryKey: ["tickets", onlyMine, status, priority, tab],
+    queryFn: () =>
+      fetchTickets({ mine: onlyMine, status: status || undefined, priority: priority || undefined, finalized: tab === "historico" }),
   });
 
   return (
@@ -45,10 +47,29 @@ export default function TicketsPage() {
               </option>
             ))}
           </select>
-          <Link className="button-link" to="/tickets/new">
-            Nova solicitação
-          </Link>
+          {tab === "ativas" && (
+            <Link className="button-link" to="/tickets/new">
+              Nova solicitação
+            </Link>
+          )}
         </div>
+      </div>
+
+      <div className="tabs">
+        <button
+          type="button"
+          className={`tab-button ${tab === "ativas" ? "active" : ""}`}
+          onClick={() => setTab("ativas")}
+        >
+          Ativas
+        </button>
+        <button
+          type="button"
+          className={`tab-button ${tab === "historico" ? "active" : ""}`}
+          onClick={() => setTab("historico")}
+        >
+          Histórico
+        </button>
       </div>
 
       {isLoading && <p>Carregando solicitações...</p>}

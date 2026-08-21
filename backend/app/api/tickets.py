@@ -19,10 +19,13 @@ from app.security.dependencies import get_current_user, require_admin
 from app.services.ticket_service import (
     FileTooLargeError,
     ProjectNotFoundError,
+    TicketAlreadyFinalizedError,
+    TicketNotFinalizableError,
     TicketNotFoundError,
     add_comment,
     can_view_ticket,
     create_ticket,
+    finalize_ticket,
     get_attachment,
     get_ticket,
     list_attachments,
@@ -52,6 +55,7 @@ def get_tickets(
     mine: bool = Query(default=False),
     status_filter: TicketStatus | None = Query(default=None, alias="status"),
     priority: TicketPriority | None = Query(default=None),
+    finalized: bool = Query(default=False),
     db: DbSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -60,7 +64,7 @@ def get_tickets(
         mine_user_id = current_user.id
     else:
         mine_user_id = current_user.id if mine else None
-    return list_tickets(db, project_id=project_id, mine_user_id=mine_user_id, status=status_filter, priority=priority)
+    return list_tickets(db, project_id=project_id, mine_user_id=mine_user_id, status=status_filter, priority=priority, finalized=finalized)
 
 
 @router.post("", response_model=TicketOut, status_code=status.HTTP_201_CREATED)
@@ -99,6 +103,29 @@ def put_ticket(
         return update_ticket(db, ticket_id, current_user.id, payload)
     except TicketNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket não encontrado")
+    except TicketAlreadyFinalizedError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Não é possível editar uma solicitação já finalizada"
+        )
+
+
+@router.post("/{ticket_id}/finalize", response_model=TicketOut)
+def post_finalize_ticket(
+    ticket_id: int,
+    db: DbSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    try:
+        return finalize_ticket(db, ticket_id)
+    except TicketNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket não encontrado")
+    except TicketNotFinalizableError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Só é possível finalizar solicitações concluídas ou canceladas",
+        )
+    except TicketAlreadyFinalizedError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Solicitação já finalizada")
 
 
 @router.get("/{ticket_id}/comments", response_model=list[TicketCommentOut])
