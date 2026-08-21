@@ -2,12 +2,13 @@ import { handleApiResponse } from "../utils/apiError.js";
 
 const API_BASE_URL = "/api";
 
-export async function fetchTickets({ mine = false, projectId, status, priority } = {}) {
+export async function fetchTickets({ mine = false, projectId, status, priority, finalized = false } = {}) {
   const params = new URLSearchParams();
   if (mine) params.set("mine", "true");
   if (projectId) params.set("project_id", projectId);
   if (status) params.set("status", status);
   if (priority) params.set("priority", priority);
+  if (finalized) params.set("finalized", "true");
 
   const response = await fetch(`${API_BASE_URL}/tickets?${params.toString()}`, {
     credentials: "include",
@@ -38,6 +39,14 @@ export async function updateTicket(ticketId, data) {
     headers: { "Content-Type": "application/json" },
     credentials: "include",
     body: JSON.stringify(data),
+  });
+  return handleApiResponse(response);
+}
+
+export async function finalizeTicket(ticketId) {
+  const response = await fetch(`${API_BASE_URL}/tickets/${ticketId}/finalize`, {
+    method: "POST",
+    credentials: "include",
   });
   return handleApiResponse(response);
 }
