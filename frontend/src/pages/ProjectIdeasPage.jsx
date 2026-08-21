@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "../context/AuthContext.jsx";
+import { fetchProjects } from "../services/projects.js";
 import { createProjectIdea, fetchProjectIdeas, updateProjectIdeaStatus } from "../services/projectIdeas.js";
 
 const STATUS_LABELS = {
@@ -17,6 +18,7 @@ export default function ProjectIdeasPage() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [projectId, setProjectId] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pendingIdeaId, setPendingIdeaId] = useState(null);
@@ -26,14 +28,17 @@ export default function ProjectIdeasPage() {
     queryFn: fetchProjectIdeas,
   });
 
+  const { data: projects } = useQuery({ queryKey: ["projects"], queryFn: () => fetchProjects() });
+
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
     setSubmitting(true);
     try {
-      await createProjectIdea({ title, description });
+      await createProjectIdea({ title, description, project_id: Number(projectId) });
       setTitle("");
       setDescription("");
+      setProjectId("");
       queryClient.invalidateQueries({ queryKey: ["project-ideas"] });
     } catch (err) {
       setError(err.message || "Não foi possível enviar a ideia.");
@@ -63,6 +68,18 @@ export default function ProjectIdeasPage() {
         <label htmlFor="idea_title">Título</label>
         <input id="idea_title" value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus />
 
+        <label htmlFor="idea_project">Projeto</label>
+        <select id="idea_project" value={projectId} onChange={(e) => setProjectId(e.target.value)} required>
+          <option value="" disabled>
+            Selecione um projeto
+          </option>
+          {projects?.map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.name}
+            </option>
+          ))}
+        </select>
+
         <label htmlFor="idea_description">Descrição</label>
         <textarea
           id="idea_description"
@@ -74,7 +91,7 @@ export default function ProjectIdeasPage() {
 
         {error && <p className="error">{error}</p>}
 
-        <button type="submit" disabled={submitting}>
+        <button type="submit" disabled={submitting || !projectId}>
           {submitting ? "Enviando..." : "Enviar ideia"}
         </button>
       </form>
