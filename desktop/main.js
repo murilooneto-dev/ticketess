@@ -41,6 +41,10 @@ function spawnBackend() {
     cwd: BACKEND_DIR,
     windowsHide: true,
     detached: false,
+    // força modo produção (sem hot-reload do uvicorn) independente do
+    // .env — o reloader vigiaria backend/.venv inteira (dezenas de
+    // milhares de arquivos) o tempo todo, deixando a máquina lenta.
+    env: { ...process.env, APP_ENV: "production" },
   });
   startedByUs = true;
   backendProcess.on("error", (err) => {
