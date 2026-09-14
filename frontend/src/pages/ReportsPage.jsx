@@ -1,12 +1,8 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 
-import { generateReports, fetchReports, reportDownloadUrl } from "../services/reports.js";
-
-const TYPE_LABELS = {
-  technical: "Técnico",
-  management: "Acompanhamento",
-};
+import { generateReport, fetchReports, reportDownloadUrl } from "../services/reports.js";
 
 export default function ReportsPage() {
   const queryClient = useQueryClient();
@@ -26,20 +22,21 @@ export default function ReportsPage() {
     setError("");
     setGenerating(true);
     try {
-      await generateReports(periodStart, periodEnd);
+      await generateReport(periodStart, periodEnd);
       queryClient.invalidateQueries({ queryKey: ["reports"] });
     } catch (err) {
-      setError(err.message || "Não foi possível gerar os relatórios.");
+      setError(err.message || "Não foi possível gerar o relatório.");
     } finally {
       setGenerating(false);
     }
   }
 
-  const technicalReports = reports?.filter((r) => r.type === "technical") || [];
-  const managementReports = reports?.filter((r) => r.type === "management") || [];
-
   return (
     <main className="page">
+      <Link to="/" className="back-link">
+        ← Voltar
+      </Link>
+
       <h1>Relatórios</h1>
 
       <form className="form" onSubmit={handleGenerate}>
@@ -59,42 +56,22 @@ export default function ReportsPage() {
         {error && <p className="error">{error}</p>}
 
         <button type="submit" disabled={generating}>
-          {generating ? "Gerando..." : "Gerar relatórios"}
+          {generating ? "Gerando..." : "Gerar relatório"}
         </button>
       </form>
 
       {isLoading && <p>Carregando relatórios...</p>}
+      {reports?.length === 0 && <p className="meta">Nenhum relatório gerado ainda.</p>}
 
-      <h2>Relatório técnico</h2>
-      {technicalReports.length === 0 && <p className="meta">Nenhum relatório técnico gerado ainda.</p>}
       <ul className="update-list">
-        {technicalReports.map((report) => (
+        {reports?.map((report) => (
           <li key={report.id}>
             <p>
               <a href={reportDownloadUrl(report.id)} target="_blank" rel="noreferrer">
                 {report.period_start} a {report.period_end}
               </a>
             </p>
-            <span className="meta">
-              {TYPE_LABELS[report.type]} — gerado em {new Date(report.created_at).toLocaleString("pt-BR")}
-            </span>
-          </li>
-        ))}
-      </ul>
-
-      <h2>Relatório de acompanhamento</h2>
-      {managementReports.length === 0 && <p className="meta">Nenhum relatório de acompanhamento gerado ainda.</p>}
-      <ul className="update-list">
-        {managementReports.map((report) => (
-          <li key={report.id}>
-            <p>
-              <a href={reportDownloadUrl(report.id)} target="_blank" rel="noreferrer">
-                {report.period_start} a {report.period_end}
-              </a>
-            </p>
-            <span className="meta">
-              {TYPE_LABELS[report.type]} — gerado em {new Date(report.created_at).toLocaleString("pt-BR")}
-            </span>
+            <span className="meta">gerado em {new Date(report.created_at).toLocaleString("pt-BR")}</span>
           </li>
         ))}
       </ul>

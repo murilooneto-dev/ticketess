@@ -8,12 +8,6 @@ export default function NavBar() {
       <Link to="/" className="navbar-brand">
         <Logo size="md" variant="wide" />
       </Link>
-      <div className="navbar-links">
-        <Link to="/projects">Projetos</Link>
-        <Link to="/tickets">Solicitações</Link>
-        <Link to="/project-ideas">Ideias</Link>
-        <Link to="/reports">Relatórios</Link>
-      </div>
     </nav>
   );
 }

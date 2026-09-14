@@ -6,19 +6,18 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session as DbSession
 
 from app.database import get_db
-from app.schemas.report import ReportGenerateRequest, ReportGenerateResponse, ReportOut
-from app.services.report_service import generate_reports, get_report, list_reports
+from app.schemas.report import ReportGenerateRequest, ReportOut
+from app.services.report_service import generate_report, get_report, list_reports
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
 
-@router.post("/generate", response_model=ReportGenerateResponse)
-def post_generate_reports(payload: ReportGenerateRequest, db: DbSession = Depends(get_db)):
+@router.post("/generate", response_model=ReportOut)
+def post_generate_report(payload: ReportGenerateRequest, db: DbSession = Depends(get_db)):
     period_end = payload.period_end or date.today()
     period_start = payload.period_start or (period_end - timedelta(days=6))
 
-    technical, management = generate_reports(db, period_start, period_end)
-    return ReportGenerateResponse(technical=technical, management=management)
+    return generate_report(db, period_start, period_end)
 
 
 @router.get("", response_model=list[ReportOut])

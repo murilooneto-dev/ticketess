@@ -145,8 +145,8 @@ export default function TicketDetailPage() {
 
   return (
     <main className="page">
-      <Link to="/tickets" className="back-link">
-        ← Voltar para solicitações
+      <Link to="/" className="back-link">
+        ← Voltar
       </Link>
 
       <div className="page-header">

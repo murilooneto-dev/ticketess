@@ -87,14 +87,14 @@ def test_generate_weekly_reports_skips_when_disabled(db_session, monkeypatch):
     monkeypatch.setattr(settings, "REPORT_ENABLED", False)
     _bind_jobs_to_test_db(monkeypatch, db_session)
     called = []
-    monkeypatch.setattr(jobs, "generate_reports", lambda *a, **kw: called.append(1))
+    monkeypatch.setattr(jobs, "generate_report", lambda *a, **kw: called.append(1))
 
     jobs.generate_weekly_reports()
 
     assert called == []
 
 
-def test_generate_weekly_reports_creates_both_reports(db_session, monkeypatch, tmp_path):
+def test_generate_weekly_reports_creates_report(db_session, monkeypatch, tmp_path):
     monkeypatch.setattr(Settings, "reports_dir", property(lambda self: tmp_path))
     monkeypatch.setattr(settings, "REPORT_ENABLED", True)
     _bind_jobs_to_test_db(monkeypatch, db_session)
@@ -102,9 +102,8 @@ def test_generate_weekly_reports_creates_both_reports(db_session, monkeypatch, t
     jobs.generate_weekly_reports()
 
     reports = list(db_session.execute(select(Report)).scalars())
-    assert len(reports) == 2
-    assert {r.type.value for r in reports} == {"technical", "management"}
-    assert all(r.period_end == date.today() for r in reports)
+    assert len(reports) == 1
+    assert reports[0].period_end == date.today()
 
 
 def test_backup_database_skips_when_disabled(monkeypatch):

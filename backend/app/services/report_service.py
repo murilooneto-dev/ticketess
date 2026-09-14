@@ -10,13 +10,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session as DbSession
 
 from app.config import settings
-from app.models.report import Report, ReportType
+from app.models.report import Report
 from app.services.report_data import ProjectPeriodData, collect_period_data
-from app.services.report_glossary import (
-    describe_project_period_summary_plain,
-    describe_ticket_opened_technical,
-    describe_ticket_resolved_technical,
-)
+from app.services.report_glossary import describe_project_period_summary_plain
 
 BRAND_NAVY = colors.HexColor("#0b1530")
 BRAND_BLUE = colors.HexColor("#1554c9")
@@ -47,27 +43,13 @@ STYLES = {
         spaceBefore=10,
         spaceAfter=8,
     ),
-    "SectionHeading": ParagraphStyle(
-        "SectionHeading", parent=_BASE_STYLES["Heading3"], textColor=BRAND_NAVY, spaceBefore=6, spaceAfter=4,
-    ),
     "Body": ParagraphStyle("Body", parent=_BASE_STYLES["BodyText"], leading=14, spaceAfter=2),
     "Empty": ParagraphStyle("Empty", parent=_BASE_STYLES["Normal"], textColor=BRAND_GRAY),
 }
 
 
-def _report_dir(report_type: ReportType) -> Path:
-    subdir = "technical" if report_type == ReportType.TECHNICAL else "management"
-    directory = settings.reports_dir / subdir
-    directory.mkdir(parents=True, exist_ok=True)
-    return directory
-
-
 def _report_filename(start: date, end: date) -> str:
     return f"{start.isoformat()}_{end.isoformat()}.pdf"
-
-
-def _bullet(text: str):
-    return Paragraph(f"• {text}", STYLES["Body"])
 
 
 def _draw_header_footer(report_title: str, start: date, end: date):
@@ -123,7 +105,8 @@ def _draw_header_footer(report_title: str, start: date, end: date):
     return _draw
 
 
-def _build_pdf(path: Path, report_title: str, start: date, end: date, sections: list[ProjectPeriodData], technical: bool) -> None:
+def _build_pdf(path: Path, start: date, end: date, sections: list[ProjectPeriodData]) -> None:
+    report_title = "Relatório de Acompanhamento"
     doc = BaseDocTemplate(
         str(path),
         pagesize=A4,
@@ -153,64 +136,27 @@ def _build_pdf(path: Path, report_title: str, start: date, end: date, sections: 
     for data in sections:
         story.append(Paragraph(f"{data.project.name} — {data.project.status.value}", STYLES["ProjectHeading"]))
 
-        if not technical:
-            total = (
-                len(data.tickets_opened)
-                + len(data.tickets_resolved)
-                + len(data.commits)
-                + len(data.pull_requests)
-                + len(data.updates)
+        total = (
+            len(data.tickets_opened)
+            + len(data.tickets_resolved)
+            + len(data.commits)
+            + len(data.pull_requests)
+            + len(data.updates)
+        )
+        story.append(
+            Paragraph(
+                describe_project_period_summary_plain(data.project.name, total, start, end),
+                STYLES["Body"],
             )
-            story.append(
-                Paragraph(
-                    describe_project_period_summary_plain(data.project.name, total, start, end),
-                    STYLES["Body"],
-                )
-            )
-            story.append(Spacer(1, 0.4 * cm))
-            continue
-
-        if data.tickets_opened:
-            story.append(Paragraph("Solicitações abertas no período", STYLES["SectionHeading"]))
-            for ticket in data.tickets_opened:
-                story.append(_bullet(describe_ticket_opened_technical(ticket)))
-            story.append(Spacer(1, 0.25 * cm))
-
-        if data.tickets_resolved:
-            story.append(Paragraph("Solicitações concluídas ou canceladas no período", STYLES["SectionHeading"]))
-            for ticket in data.tickets_resolved:
-                story.append(_bullet(describe_ticket_resolved_technical(ticket)))
-            story.append(Spacer(1, 0.25 * cm))
-
-        if data.commits:
-            story.append(Paragraph("Alterações no código", STYLES["SectionHeading"]))
-            for commit in data.commits:
-                message = commit.message.splitlines()[0] if commit.message else ""
-                story.append(_bullet(f"{commit.sha[:7]} — {message} ({commit.author_name or '—'})"))
-            story.append(Spacer(1, 0.25 * cm))
-
-        if data.pull_requests:
-            story.append(Paragraph("Pull requests", STYLES["SectionHeading"]))
-            for pr in data.pull_requests:
-                story.append(_bullet(f"#{pr.number} {pr.title} — {pr.state}"))
-            story.append(Spacer(1, 0.25 * cm))
-
-        if data.updates:
-            story.append(Paragraph("Andamentos registrados", STYLES["SectionHeading"]))
-            for update in data.updates:
-                story.append(_bullet(update.message))
-            story.append(Spacer(1, 0.25 * cm))
-
+        )
         story.append(Spacer(1, 0.4 * cm))
 
     doc.build(story)
 
 
-def _upsert_report(db: DbSession, report_type: ReportType, start: date, end: date, file_path: Path) -> Report:
+def _upsert_report(db: DbSession, start: date, end: date, file_path: Path) -> Report:
     existing = db.execute(
-        select(Report).where(
-            Report.type == report_type, Report.period_start == start, Report.period_end == end
-        )
+        select(Report).where(Report.period_start == start, Report.period_end == end)
     ).scalar_one_or_none()
 
     if existing is not None:
@@ -220,30 +166,21 @@ def _upsert_report(db: DbSession, report_type: ReportType, start: date, end: dat
         db.refresh(existing)
         return existing
 
-    report = Report(
-        type=report_type,
-        period_start=start,
-        period_end=end,
-        file_path=str(file_path),
-    )
+    report = Report(period_start=start, period_end=end, file_path=str(file_path))
     db.add(report)
     db.commit()
     db.refresh(report)
     return report
 
 
-def generate_reports(db: DbSession, start: date, end: date) -> tuple[Report, Report]:
+def generate_report(db: DbSession, start: date, end: date) -> Report:
     period_data = collect_period_data(db, start, end)
 
-    technical_path = _report_dir(ReportType.TECHNICAL) / _report_filename(start, end)
-    _build_pdf(technical_path, "Relatório Técnico", start, end, period_data, technical=True)
+    settings.reports_dir.mkdir(parents=True, exist_ok=True)
+    path = settings.reports_dir / _report_filename(start, end)
+    _build_pdf(path, start, end, period_data)
 
-    management_path = _report_dir(ReportType.MANAGEMENT) / _report_filename(start, end)
-    _build_pdf(management_path, "Relatório de Acompanhamento", start, end, period_data, technical=False)
-
-    technical_report = _upsert_report(db, ReportType.TECHNICAL, start, end, technical_path)
-    management_report = _upsert_report(db, ReportType.MANAGEMENT, start, end, management_path)
-    return technical_report, management_report
+    return _upsert_report(db, start, end, path)
 
 
 def list_reports(db: DbSession) -> list[Report]:

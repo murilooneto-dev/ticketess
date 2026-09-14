@@ -5,10 +5,8 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
-from app.api.dashboard import router as dashboard_router
 from app.api.github import router as github_router
 from app.api.projects import router as projects_router
-from app.api.project_ideas import router as project_ideas_router
 from app.api.reports import router as reports_router
 from app.api.system import router as system_router
 from app.api.tickets import router as tickets_router
@@ -43,10 +41,8 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(system_router)
 app.include_router(projects_router)
-app.include_router(project_ideas_router)
 app.include_router(tickets_router)
 app.include_router(github_router)
-app.include_router(dashboard_router)
 app.include_router(reports_router)
 
 frontend_dist = settings.frontend_dist_dir

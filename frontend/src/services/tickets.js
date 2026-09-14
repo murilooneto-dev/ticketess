@@ -2,9 +2,8 @@ import { handleApiResponse } from "../utils/apiError.js";
 
 const API_BASE_URL = "/api";
 
-export async function fetchTickets({ mine = false, projectId, status, priority, finalized = false } = {}) {
+export async function fetchTickets({ projectId, status, priority, finalized = false } = {}) {
   const params = new URLSearchParams();
-  if (mine) params.set("mine", "true");
   if (projectId) params.set("project_id", projectId);
   if (status) params.set("status", status);
   if (priority) params.set("priority", priority);

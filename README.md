@@ -3,10 +3,10 @@
 *Suporte • TI • Soluções*
 
 Sistema de uso pessoal para gerenciamento dos projetos de desenvolvimento
-de software de um escritório: controle de projetos, solicitações
-(tickets), integração com GitHub, dashboards e relatórios
-técnicos/gerenciais — tudo rodando localmente em Windows, sem Docker,
-como app desktop (ou pelo navegador, se preferir).
+de software de um escritório: projetos e solicitações (tickets) numa
+tela só, integração com GitHub e relatório de acompanhamento — tudo
+rodando localmente em Windows, sem Docker, como app desktop (ou pelo
+navegador, se preferir).
 
 > O nome de pacote interno (`devcontrol`, arquivos de banco/scripts)
 > continua o mesmo por baixo dos panos — é só implementação; a marca
@@ -31,7 +31,7 @@ copia `.env.example` para `.env`, aplica as migrations e gera o build
 de produção do frontend.
 
 Não há tela de login — o sistema é de uso pessoal (um usuário só, sem
-papéis/permissões) e abre direto no dashboard.
+papéis/permissões) e abre direto na tela de projetos.
 
 ## Uso
 
@@ -124,7 +124,14 @@ O desenvolvimento seguiu 12 fases incrementais, cada uma documentada em
 - Sistema simplificado para uso pessoal: login e papéis
   (Admin/Gestor/Operador) removidos, tela de "Usuários" removida,
   notificações removidas. Criação de ticket ganhou campo livre "quem
-  pediu" e status selecionável na hora de abrir a solicitação. O
-  relatório de acompanhamento passou a resumir cada projeto numa única
-  linha ("N alterações entre DD/MM e DD/MM") em vez de listar cada
-  evento; o relatório técnico continua detalhado.
+  pediu" e status selecionável na hora de abrir a solicitação.
+- Funcionalidade de "Ideias de projeto" removida (não usada).
+- Relatório técnico removido — só existe o relatório de acompanhamento,
+  que resume cada projeto numa única linha ("N alterações entre DD/MM
+  e DD/MM") em vez de listar cada evento.
+- Interface enxugada numa tela só: Dashboard, lista de Projetos,
+  detalhe de Projeto e lista de Solicitações viraram uma única tela —
+  projetos em cards recolhíveis (nome + contagem de solicitações), que
+  expandem mostrando edição do projeto, GitHub, andamentos e as
+  solicitações daquele projeto. Botões "Novo projeto", "Nova
+  solicitação" e "Relatório" no topo.

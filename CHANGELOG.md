@@ -21,7 +21,14 @@ pessoal (single-user, sem login).
   criação de ticket, substituindo o autor implícito do login.
 - Resumo consolidado por projeto no relatório de acompanhamento
   ("N alterações realizadas entre DD/MM e DD/MM"), em vez de listar
-  cada evento individualmente. O relatório técnico continua detalhado.
+  cada evento individualmente.
+- Tela única na home (`/`): projetos em cards recolhíveis (nome +
+  contagem de solicitações), que expandem mostrando edição do
+  projeto, GitHub, andamentos e as solicitações daquele projeto.
+  Botões "Novo projeto", "Nova solicitação" e "Relatório" no topo
+  (`frontend/src/pages/HomePage.jsx`,
+  `frontend/src/components/ProjectCard.jsx`,
+  `frontend/src/components/NewProjectForm.jsx`).
 
 ### Removido
 - Login (usuário/senha, sessão por cookie), papéis de usuário
@@ -36,28 +43,41 @@ pessoal (single-user, sem login).
   Alembic (`c398ccb256a1`).
 - Dependências `bcrypt` e `passlib`, sem uso após a remoção da
   autenticação.
+- Funcionalidade "Ideias de projeto" (tabela `project_ideas`, models,
+  schemas, services, API e tela) — não usada.
+- Relatório técnico — só sobra o relatório de acompanhamento; `Report`
+  deixou de ter o campo `type` (migration `5ff54f1175de`).
+- Dashboard (cards de estatística, gráficos de barra) e as telas
+  separadas de Projetos/Novo Projeto/Detalhe de Projeto/Solicitações —
+  substituídas pela tela única (`HomePage`/`ProjectCard`).
 
 ### Alterado
 - Todos os endpoints da API deixaram de exigir autenticação/permissão
   por papel.
 - Suíte de testes do backend reescrita para o modelo single-user
-  (80 testes passando).
+  (61 testes passando).
 - `README.md` atualizado (removidas as seções de login/papéis,
-  adicionada a seção "App desktop").
+  adicionada a seção "App desktop", refletida a tela única).
 
 ### Arquivos alterados
 - `desktop/` — novo app Electron.
 - `scripts/install-desktop.ps1` — novo script de instalação do app
   desktop.
 - `backend/app/api/`, `backend/app/services/`, `backend/app/models/`,
-  `backend/app/schemas/` — remoção de auth/papéis/notificações,
-  simplificação de tickets/projetos/ideias de projeto.
+  `backend/app/schemas/` — remoção de auth/papéis/notificações/ideias
+  de projeto/dashboard/relatório técnico, simplificação de
+  tickets/projetos.
 - `backend/migrations/versions/c398ccb256a1_remove_auth_roles_single_user.py`
-  — migration de remoção das tabelas/colunas de autenticação.
+  e `backend/migrations/versions/5ff54f1175de_remove_project_ideas_and_technical_.py`
+  — migrations de remoção das tabelas/colunas de autenticação, ideias
+  de projeto e tipo de relatório.
 - `backend/app/services/report_glossary.py`,
   `backend/app/services/report_service.py` — resumo consolidado do
-  relatório de acompanhamento.
-- `frontend/src/` — remoção de telas/contexto de login, papéis e
-  notificações; formulário de novo ticket com "quem pediu" e status.
-- `backend/tests/` — suíte reescrita sem fixtures de login/papel.
+  relatório de acompanhamento, sem mais branch técnico.
+- `frontend/src/` — remoção de telas/contexto de login, papéis,
+  notificações, dashboard, ideias de projeto e das telas separadas de
+  projeto/ticket; nova tela única (`HomePage`, `ProjectCard`,
+  `NewProjectForm`).
+- `backend/tests/` — suíte reescrita sem fixtures de login/papel, sem
+  testes de dashboard/ideias de projeto.
 - `README.md`, `CHANGELOG.md`, `.gitignore`, `backend/requirements.txt`.
