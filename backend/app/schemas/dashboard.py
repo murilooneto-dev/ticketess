@@ -7,8 +7,7 @@ from app.schemas.ticket import TicketListItemOut
 class DashboardSummary(BaseModel):
     total_projects: int
     total_tickets: int
-    my_open_tickets: int
-    my_managed_projects: int
+    open_tickets: int
     projects_by_status: dict[str, int]
     tickets_by_status: dict[str, int]
     tickets_by_priority: dict[str, int]

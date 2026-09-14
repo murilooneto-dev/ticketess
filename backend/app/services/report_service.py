@@ -13,11 +13,8 @@ from app.config import settings
 from app.models.report import Report, ReportType
 from app.services.report_data import ProjectPeriodData, collect_period_data
 from app.services.report_glossary import (
-    describe_commits_plain,
-    describe_pull_request_plain,
-    describe_ticket_opened_plain,
+    describe_project_period_summary_plain,
     describe_ticket_opened_technical,
-    describe_ticket_resolved_plain,
     describe_ticket_resolved_technical,
 )
 
@@ -156,39 +153,46 @@ def _build_pdf(path: Path, report_title: str, start: date, end: date, sections: 
     for data in sections:
         story.append(Paragraph(f"{data.project.name} — {data.project.status.value}", STYLES["ProjectHeading"]))
 
+        if not technical:
+            total = (
+                len(data.tickets_opened)
+                + len(data.tickets_resolved)
+                + len(data.commits)
+                + len(data.pull_requests)
+                + len(data.updates)
+            )
+            story.append(
+                Paragraph(
+                    describe_project_period_summary_plain(data.project.name, total, start, end),
+                    STYLES["Body"],
+                )
+            )
+            story.append(Spacer(1, 0.4 * cm))
+            continue
+
         if data.tickets_opened:
             story.append(Paragraph("Solicitações abertas no período", STYLES["SectionHeading"]))
             for ticket in data.tickets_opened:
-                text = describe_ticket_opened_technical(ticket) if technical else describe_ticket_opened_plain(ticket)
-                story.append(_bullet(text))
+                story.append(_bullet(describe_ticket_opened_technical(ticket)))
             story.append(Spacer(1, 0.25 * cm))
 
         if data.tickets_resolved:
             story.append(Paragraph("Solicitações concluídas ou canceladas no período", STYLES["SectionHeading"]))
             for ticket in data.tickets_resolved:
-                text = (
-                    describe_ticket_resolved_technical(ticket) if technical else describe_ticket_resolved_plain(ticket)
-                )
-                story.append(_bullet(text))
+                story.append(_bullet(describe_ticket_resolved_technical(ticket)))
             story.append(Spacer(1, 0.25 * cm))
 
         if data.commits:
             story.append(Paragraph("Alterações no código", STYLES["SectionHeading"]))
-            if technical:
-                for commit in data.commits:
-                    message = commit.message.splitlines()[0] if commit.message else ""
-                    story.append(_bullet(f"{commit.sha[:7]} — {message} ({commit.author_name or '—'})"))
-            else:
-                story.append(Paragraph(describe_commits_plain(len(data.commits)), STYLES["Body"]))
+            for commit in data.commits:
+                message = commit.message.splitlines()[0] if commit.message else ""
+                story.append(_bullet(f"{commit.sha[:7]} — {message} ({commit.author_name or '—'})"))
             story.append(Spacer(1, 0.25 * cm))
 
         if data.pull_requests:
             story.append(Paragraph("Pull requests", STYLES["SectionHeading"]))
             for pr in data.pull_requests:
-                if technical:
-                    story.append(_bullet(f"#{pr.number} {pr.title} — {pr.state}"))
-                else:
-                    story.append(_bullet(describe_pull_request_plain(pr)))
+                story.append(_bullet(f"#{pr.number} {pr.title} — {pr.state}"))
             story.append(Spacer(1, 0.25 * cm))
 
         if data.updates:
@@ -202,9 +206,7 @@ def _build_pdf(path: Path, report_title: str, start: date, end: date, sections: 
     doc.build(story)
 
 
-def _upsert_report(
-    db: DbSession, report_type: ReportType, start: date, end: date, file_path: Path, author_id: int | None
-) -> Report:
+def _upsert_report(db: DbSession, report_type: ReportType, start: date, end: date, file_path: Path) -> Report:
     existing = db.execute(
         select(Report).where(
             Report.type == report_type, Report.period_start == start, Report.period_end == end
@@ -213,7 +215,6 @@ def _upsert_report(
 
     if existing is not None:
         existing.file_path = str(file_path)
-        existing.generated_by = author_id
         existing.created_at = datetime.now(timezone.utc)
         db.commit()
         db.refresh(existing)
@@ -224,7 +225,6 @@ def _upsert_report(
         period_start=start,
         period_end=end,
         file_path=str(file_path),
-        generated_by=author_id,
     )
     db.add(report)
     db.commit()
@@ -232,7 +232,7 @@ def _upsert_report(
     return report
 
 
-def generate_reports(db: DbSession, start: date, end: date, author_id: int | None) -> tuple[Report, Report]:
+def generate_reports(db: DbSession, start: date, end: date) -> tuple[Report, Report]:
     period_data = collect_period_data(db, start, end)
 
     technical_path = _report_dir(ReportType.TECHNICAL) / _report_filename(start, end)
@@ -241,15 +241,13 @@ def generate_reports(db: DbSession, start: date, end: date, author_id: int | Non
     management_path = _report_dir(ReportType.MANAGEMENT) / _report_filename(start, end)
     _build_pdf(management_path, "Relatório de Acompanhamento", start, end, period_data, technical=False)
 
-    technical_report = _upsert_report(db, ReportType.TECHNICAL, start, end, technical_path, author_id)
-    management_report = _upsert_report(db, ReportType.MANAGEMENT, start, end, management_path, author_id)
+    technical_report = _upsert_report(db, ReportType.TECHNICAL, start, end, technical_path)
+    management_report = _upsert_report(db, ReportType.MANAGEMENT, start, end, management_path)
     return technical_report, management_report
 
 
-def list_reports(db: DbSession, report_type: ReportType | None = None) -> list[Report]:
+def list_reports(db: DbSession) -> list[Report]:
     query = select(Report).order_by(Report.period_start.desc())
-    if report_type is not None:
-        query = query.where(Report.type == report_type)
     return list(db.execute(query).scalars())
 
 

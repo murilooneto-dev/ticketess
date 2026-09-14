@@ -51,7 +51,7 @@ def generate_weekly_reports() -> None:
     try:
         period_end = date.today()
         period_start = period_end - timedelta(days=6)
-        technical, management = generate_reports(db, period_start, period_end, None)
+        technical, management = generate_reports(db, period_start, period_end)
         logger.info(
             "Relatórios semanais gerados automaticamente: técnico #%s, gerencial #%s",
             technical.id,

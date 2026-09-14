@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { useAuth } from "../context/AuthContext.jsx";
 import { fetchProjects } from "../services/projects.js";
 import { createProjectIdea, fetchProjectIdeas, updateProjectIdeaStatus } from "../services/projectIdeas.js";
 
@@ -13,8 +12,6 @@ const STATUS_LABELS = {
 };
 
 export default function ProjectIdeasPage() {
-  const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
   const queryClient = useQueryClient();
 
   const [title, setTitle] = useState("");
@@ -140,7 +137,7 @@ export default function ProjectIdeasPage() {
       </form>
 
       <div className="page-header">
-        <h2>{isAdmin ? "Todas as ideias" : "Minhas ideias"}</h2>
+        <h2>Todas as ideias</h2>
       </div>
 
       <div className="tabs">
@@ -170,10 +167,9 @@ export default function ProjectIdeasPage() {
             <tr>
               <th>Título</th>
               <th>Descrição</th>
-              {isAdmin && <th>Autor</th>}
               <th>Status</th>
               {tab === "historico" && <th>Detalhes</th>}
-              {isAdmin && tab === "pendentes" && <th>Ações</th>}
+              {tab === "pendentes" && <th>Ações</th>}
             </tr>
           </thead>
           <tbody>
@@ -181,7 +177,6 @@ export default function ProjectIdeasPage() {
               <tr key={idea.id}>
                 <td>{idea.title}</td>
                 <td>{idea.description}</td>
-                {isAdmin && <td>{idea.author ? idea.author.name : "—"}</td>}
                 <td>
                   <span className={`badge badge-idea-${idea.status}`}>{STATUS_LABELS[idea.status]}</span>
                 </td>
@@ -194,7 +189,7 @@ export default function ProjectIdeasPage() {
                     {idea.status === "rejeitada" && idea.rejection_reason && <span>{idea.rejection_reason}</span>}
                   </td>
                 )}
-                {isAdmin && tab === "pendentes" && (
+                {tab === "pendentes" && (
                   <td>
                     {actionIdeaId !== idea.id && (
                       <>

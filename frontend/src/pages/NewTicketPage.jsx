@@ -2,23 +2,22 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { useAuth } from "../context/AuthContext.jsx";
 import { fetchProjects } from "../services/projects.js";
 import { createTicket } from "../services/tickets.js";
-import { TYPE_OPTIONS, PRIORITY_OPTIONS } from "../utils/ticketLabels.js";
+import { TYPE_OPTIONS, PRIORITY_OPTIONS, STATUS_OPTIONS } from "../utils/ticketLabels.js";
 
 export default function NewTicketPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
   const [searchParams] = useSearchParams();
   const defaultProjectId = searchParams.get("project_id") || "";
 
   const [projectId, setProjectId] = useState(defaultProjectId);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [requesterName, setRequesterName] = useState("");
   const [type, setType] = useState("outro");
   const [priority, setPriority] = useState("media");
+  const [status, setStatus] = useState("aberto");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,16 +28,15 @@ export default function NewTicketPage() {
     setError("");
     setSubmitting(true);
     try {
-      const payload = {
+      const ticket = await createTicket({
         project_id: Number(projectId),
         title,
         description: description || null,
-      };
-      if (isAdmin) {
-        payload.type = type;
-        payload.priority = priority;
-      }
-      const ticket = await createTicket(payload);
+        requester_name: requesterName || null,
+        type,
+        priority,
+        status,
+      });
       navigate(`/tickets/${ticket.id}`, { replace: true });
     } catch (err) {
       setError(err.message || "Não foi possível abrir a solicitação.");
@@ -76,31 +74,40 @@ export default function NewTicketPage() {
           placeholder="Descreva o que você precisa..."
         />
 
-        {isAdmin && (
-          <>
-            <label htmlFor="type">Tipo</label>
-            <select id="type" value={type} onChange={(e) => setType(e.target.value)}>
-              {TYPE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+        <label htmlFor="requester">Quem pediu</label>
+        <input
+          id="requester"
+          value={requesterName}
+          onChange={(e) => setRequesterName(e.target.value)}
+          placeholder="Nome de quem solicitou"
+        />
 
-            <label htmlFor="priority">Prioridade</label>
-            <select id="priority" value={priority} onChange={(e) => setPriority(e.target.value)}>
-              {PRIORITY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </>
-        )}
+        <label htmlFor="type">Tipo</label>
+        <select id="type" value={type} onChange={(e) => setType(e.target.value)}>
+          {TYPE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
 
-        {!isAdmin && (
-          <p className="meta">O tipo e a prioridade da solicitação serão definidos pelo administrador.</p>
-        )}
+        <label htmlFor="priority">Prioridade</label>
+        <select id="priority" value={priority} onChange={(e) => setPriority(e.target.value)}>
+          {PRIORITY_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+
+        <label htmlFor="status">Status</label>
+        <select id="status" value={status} onChange={(e) => setStatus(e.target.value)}>
+          {STATUS_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
 
         {error && <p className="error">{error}</p>}
 

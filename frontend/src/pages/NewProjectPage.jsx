@@ -1,20 +1,16 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
-import { createProject, fetchManagers } from "../services/projects.js";
+import { createProject } from "../services/projects.js";
 
 export default function NewProjectPage() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [managerId, setManagerId] = useState("");
   const [githubRepo, setGithubRepo] = useState("");
   const [githubToken, setGithubToken] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  const { data: managers } = useQuery({ queryKey: ["managers"], queryFn: fetchManagers });
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -24,7 +20,6 @@ export default function NewProjectPage() {
       const project = await createProject({
         name,
         description: description || null,
-        manager_id: managerId ? Number(managerId) : null,
         github_repo: githubRepo || null,
         github_token: githubToken || null,
       });
@@ -51,16 +46,6 @@ export default function NewProjectPage() {
           onChange={(e) => setDescription(e.target.value)}
           rows={4}
         />
-
-        <label htmlFor="manager">Gestor responsável</label>
-        <select id="manager" value={managerId} onChange={(e) => setManagerId(e.target.value)}>
-          <option value="">Sem gestor definido</option>
-          {managers?.map((manager) => (
-            <option key={manager.id} value={manager.id}>
-              {manager.name}
-            </option>
-          ))}
-        </select>
 
         <label htmlFor="github_repo">Repositório GitHub (opcional)</label>
         <input

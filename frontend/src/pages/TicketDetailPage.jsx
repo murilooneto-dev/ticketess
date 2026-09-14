@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 
-import { useAuth } from "../context/AuthContext.jsx";
 import { fetchTicketGithubActivity } from "../services/github.js";
 import {
   addComment,
@@ -34,9 +33,7 @@ function formatBytes(bytes) {
 
 export default function TicketDetailPage() {
   const { ticketId } = useParams();
-  const { user } = useAuth();
   const queryClient = useQueryClient();
-  const isAdmin = user?.role === "admin";
   const fileInputRef = useRef(null);
 
   const [comment, setComment] = useState("");
@@ -159,7 +156,7 @@ export default function TicketDetailPage() {
       <div className="ticket-fields">
         <div>
           <span className="meta">Tipo</span>
-          {isAdmin && !ticket.finalized_at ? (
+          {!ticket.finalized_at ? (
             <select value={ticket.type} onChange={(e) => handleFieldChange("type", e.target.value)}>
               {TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -174,7 +171,7 @@ export default function TicketDetailPage() {
 
         <div>
           <span className="meta">Prioridade</span>
-          {isAdmin && !ticket.finalized_at ? (
+          {!ticket.finalized_at ? (
             <select value={ticket.priority} onChange={(e) => handleFieldChange("priority", e.target.value)}>
               {PRIORITY_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -189,7 +186,7 @@ export default function TicketDetailPage() {
 
         <div>
           <span className="meta">Status</span>
-          {isAdmin && !ticket.finalized_at ? (
+          {!ticket.finalized_at ? (
             <select value={ticket.status} onChange={(e) => handleFieldChange("status", e.target.value)}>
               {STATUS_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -203,7 +200,7 @@ export default function TicketDetailPage() {
         </div>
       </div>
 
-      {isAdmin && !ticket.finalized_at && (ticket.status === "concluido" || ticket.status === "cancelado") && (
+      {!ticket.finalized_at && (ticket.status === "concluido" || ticket.status === "cancelado") && (
         <div className="page-actions">
           <button type="button" onClick={handleFinalize} disabled={finalizing}>
             {finalizing ? "Finalizando..." : "Finalizar"}
@@ -216,7 +213,7 @@ export default function TicketDetailPage() {
       {finalizeError && <p className="error">{finalizeError}</p>}
 
       <p>{ticket.description || "Sem descrição."}</p>
-      <p className="meta">Aberto por {ticket.author ? ticket.author.name : "—"}</p>
+      <p className="meta">Quem pediu: {ticket.requester_name || "—"}</p>
 
       <h2>Anexos</h2>
       <ul className="attachment-list">
@@ -226,10 +223,7 @@ export default function TicketDetailPage() {
             <a href={attachmentDownloadUrl(ticketId, attachment.id)} target="_blank" rel="noreferrer">
               {attachment.original_filename}
             </a>
-            <span className="meta">
-              {" "}
-              ({formatBytes(attachment.size_bytes)}, enviado por {attachment.uploader ? attachment.uploader.name : "—"})
-            </span>
+            <span className="meta"> ({formatBytes(attachment.size_bytes)})</span>
           </li>
         ))}
       </ul>
@@ -242,9 +236,7 @@ export default function TicketDetailPage() {
         {comments?.map((c) => (
           <li key={c.id}>
             <p>{c.message}</p>
-            <span className="meta">
-              {c.author ? c.author.name : "—"} em {new Date(c.created_at).toLocaleString("pt-BR")}
-            </span>
+            <span className="meta">{new Date(c.created_at).toLocaleString("pt-BR")}</span>
           </li>
         ))}
       </ul>
@@ -305,9 +297,7 @@ export default function TicketDetailPage() {
               {FIELD_LABELS[entry.field] || entry.field}: {historyValueLabel(entry.field, entry.old_value)} →{" "}
               {historyValueLabel(entry.field, entry.new_value)}
             </p>
-            <span className="meta">
-              {entry.author ? entry.author.name : "—"} em {new Date(entry.created_at).toLocaleString("pt-BR")}
-            </span>
+            <span className="meta">{new Date(entry.created_at).toLocaleString("pt-BR")}</span>
           </li>
         ))}
       </ul>

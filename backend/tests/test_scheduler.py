@@ -105,7 +105,6 @@ def test_generate_weekly_reports_creates_both_reports(db_session, monkeypatch, t
     assert len(reports) == 2
     assert {r.type.value for r in reports} == {"technical", "management"}
     assert all(r.period_end == date.today() for r in reports)
-    assert all(r.generated_by is None for r in reports)
 
 
 def test_backup_database_skips_when_disabled(monkeypatch):

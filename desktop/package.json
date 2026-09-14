@@ -1,0 +1,13 @@
+{
+  "name": "ticketess-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Janela desktop do TickeTess (empacota o backend local existente).",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.2.0"
+  }
+}

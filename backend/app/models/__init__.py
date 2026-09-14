@@ -1,9 +1,7 @@
 from app.models.github import GithubCommit, GithubPullRequest
-from app.models.notification import Notification, NotificationType
 from app.models.project import Project, ProjectStatus, ProjectUpdate
 from app.models.project_idea import ProjectIdea, ProjectIdeaStatus
 from app.models.report import Report, ReportType
-from app.models.session import Session
 from app.models.ticket import (
     Ticket,
     TicketAttachment,
@@ -13,12 +11,8 @@ from app.models.ticket import (
     TicketStatus,
     TicketType,
 )
-from app.models.user import User, UserRole
 
 __all__ = [
-    "User",
-    "UserRole",
-    "Session",
     "Project",
     "ProjectStatus",
     "ProjectUpdate",
@@ -31,8 +25,6 @@ __all__ = [
     "TicketComment",
     "TicketAttachment",
     "TicketHistory",
-    "Notification",
-    "NotificationType",
     "GithubCommit",
     "GithubPullRequest",
     "Report",

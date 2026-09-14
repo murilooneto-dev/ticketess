@@ -29,12 +29,10 @@ class ProjectIdea(Base):
     generated_ticket_id: Mapped[int | None] = mapped_column(
         ForeignKey("tickets.id", ondelete="SET NULL"), nullable=True
     )
-    created_by: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
     )
 
-    author: Mapped["User"] = relationship(foreign_keys=[created_by])
     project: Mapped["Project | None"] = relationship()
     generated_ticket: Mapped["Ticket | None"] = relationship()

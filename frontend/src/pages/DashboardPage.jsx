@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, Navigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import StatBarList from "../components/StatBarList.jsx";
-import { useAuth } from "../context/AuthContext.jsx";
 import { fetchDashboardSummary } from "../services/dashboard.js";
 import { STATUS_LABELS as PROJECT_STATUS_LABELS } from "../utils/projectStatus.js";
 import {
@@ -11,19 +10,7 @@ import {
   TYPE_LABELS,
 } from "../utils/ticketLabels.js";
 
-const ROLE_LABELS = {
-  admin: "Administrador",
-  gestor: "Gestor",
-  operador: "Operador",
-};
-
 export default function DashboardPage() {
-  const { user } = useAuth();
-
-  if (user?.role === "operador") {
-    return <Navigate to="/tickets" replace />;
-  }
-
   const { data, isLoading, isError } = useQuery({
     queryKey: ["dashboard-summary"],
     queryFn: fetchDashboardSummary,
@@ -32,9 +19,6 @@ export default function DashboardPage() {
   return (
     <main className="page">
       <h1>Dashboard</h1>
-      <p className="status">
-        Olá, {user?.name} ({ROLE_LABELS[user?.role] || user?.role})
-      </p>
 
       {isLoading && <p>Carregando dashboard...</p>}
       {isError && <p className="error">Não foi possível carregar o dashboard.</p>}
@@ -51,15 +35,9 @@ export default function DashboardPage() {
               <span className="stat-card-label">Solicitações</span>
             </div>
             <div className="stat-card">
-              <span className="stat-card-value">{data.my_open_tickets}</span>
-              <span className="stat-card-label">Minhas solicitações em aberto</span>
+              <span className="stat-card-value">{data.open_tickets}</span>
+              <span className="stat-card-label">Solicitações em aberto</span>
             </div>
-            {user?.role === "gestor" && (
-              <div className="stat-card">
-                <span className="stat-card-value">{data.my_managed_projects}</span>
-                <span className="stat-card-label">Projetos que eu gerencio</span>
-              </div>
-            )}
           </div>
 
           <div className="dashboard-grid">
@@ -94,8 +72,7 @@ export default function DashboardPage() {
                       <Link to={`/tickets/${ticket.id}`}>{ticket.title}</Link>
                     </p>
                     <span className="meta">
-                      {TYPE_LABELS[ticket.type]} — {ticket.author ? ticket.author.name : "—"} em{" "}
-                      {new Date(ticket.created_at).toLocaleString("pt-BR")}
+                      {TYPE_LABELS[ticket.type]} em {new Date(ticket.created_at).toLocaleString("pt-BR")}
                     </span>
                   </li>
                 ))}

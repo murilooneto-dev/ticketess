@@ -59,3 +59,12 @@ def describe_commits_plain(count: int) -> str:
     if count == 1:
         return "Foi registrada 1 alteração no código do sistema."
     return f"Foram registradas {count} alterações no código do sistema."
+
+
+def describe_project_period_summary_plain(project_name: str, total: int, start, end) -> str:
+    period = f"{start.strftime('%d/%m')} e {end.strftime('%d/%m')}"
+    if total == 0:
+        return f"{project_name}: nenhuma alteração registrada entre {period}."
+    if total == 1:
+        return f"{project_name}: 1 alteração realizada entre {period}."
+    return f"{project_name}: {total} alterações realizadas entre {period}."

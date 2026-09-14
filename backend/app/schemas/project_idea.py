@@ -3,7 +3,6 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.project_idea import ProjectIdeaStatus
-from app.schemas.user import UserOut
 
 
 class ProjectIdeaCreate(BaseModel):
@@ -32,7 +31,6 @@ class ProjectIdeaOut(BaseModel):
     title: str
     description: str
     status: ProjectIdeaStatus
-    author: UserOut | None
     project: ProjectIdeaProjectOut | None
     rejection_reason: str | None
     generated_ticket_id: int | None

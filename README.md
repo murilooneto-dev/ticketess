@@ -2,11 +2,11 @@
 
 *Suporte • TI • Soluções*
 
-Sistema interno para gerenciamento dos projetos de desenvolvimento de
-software de um escritório: controle de projetos, solicitações
-(tickets), integração com GitHub, notificações, dashboards e relatórios
-técnicos/gerenciais — tudo rodando localmente em Windows, disponível
-pela rede local (LAN), sem Docker.
+Sistema de uso pessoal para gerenciamento dos projetos de desenvolvimento
+de software de um escritório: controle de projetos, solicitações
+(tickets), integração com GitHub, dashboards e relatórios
+técnicos/gerenciais — tudo rodando localmente em Windows, sem Docker,
+como app desktop (ou pelo navegador, se preferir).
 
 > O nome de pacote interno (`devcontrol`, arquivos de banco/scripts)
 > continua o mesmo por baixo dos panos — é só implementação; a marca
@@ -15,7 +15,7 @@ pela rede local (LAN), sem Docker.
 ## Stack
 
 - **Backend**: Python 3.12, FastAPI, SQLAlchemy, Alembic, Pydantic,
-  APScheduler, HTTPX, bcrypt, ReportLab.
+  APScheduler, HTTPX, ReportLab.
 - **Frontend**: React + Vite + React Router + TanStack Query, compilado
   e servido pelo próprio FastAPI em produção.
 - **Banco**: SQLite (modo WAL).
@@ -30,9 +30,8 @@ Isso cria o ambiente virtual do backend, instala as dependências,
 copia `.env.example` para `.env`, aplica as migrations e gera o build
 de produção do frontend.
 
-**Depois da instalação, edite o `.env`** e troque pelo menos
-`ADMIN_PASSWORD` (o sistema avisa no log se você esquecer). O login
-inicial do administrador usa `ADMIN_USERNAME` (padrão: `admin`).
+Não há tela de login — o sistema é de uso pessoal (um usuário só, sem
+papéis/permissões) e abre direto no dashboard.
 
 ## Uso
 
@@ -47,6 +46,26 @@ rede local).
 
 Para iniciar automaticamente com o Windows e liberar o acesso pela
 rede local, veja [docs/fase11.md](docs/fase11.md).
+
+## App desktop
+
+Além de acessar pelo navegador, há um app desktop (Electron) que abre o
+TickeTess numa janela própria, sem barra de endereço. Ele usa o mesmo
+backend local — não é um sistema separado.
+
+```powershell
+.\scripts\install-desktop.ps1
+```
+
+Isso instala as dependências do app (`desktop/`) e cria um atalho
+"TickeTess" na Área de Trabalho. Basta clicar nele para abrir — se o
+servidor ainda não estiver rodando, o próprio app inicia o backend
+automaticamente; se já estiver (por exemplo, iniciado pelo
+`Iniciar TickeTess.bat`), o app só abre a janela usando o servidor
+existente.
+
+Requer que a instalação normal (`scripts/install.ps1`) já tenha sido
+feita antes (venv do backend e build do frontend).
 
 ## Desenvolvimento
 
@@ -68,26 +87,6 @@ cd backend
 .venv\Scripts\activate
 pytest -q
 ```
-
-## Login
-
-O login é feito por **nome de usuário e senha** (sem e-mail). Cada
-usuário é cadastrado pelo administrador na tela "Usuários".
-
-## Papéis de usuário
-
-- **Administrador**: desenvolve os sistemas, cadastra usuários, define
-  classificação/prioridade/status das solicitações, controla o
-  andamento de projetos e gera relatórios. Vê e altera tudo.
-- **Gestor**: visualiza todas as solicitações (de operadores e de
-  outros gestores) e todos os projetos, abre novas solicitações e
-  comenta. Não define tipo/prioridade/status.
-- **Operador**: abre solicitações (novas funcionalidades, alterações,
-  melhorias, bugs, suporte) e só acompanha o andamento e status das
-  solicitações que ele mesmo criou.
-
-O administrador é sempre notificado quando um gestor ou operador cria,
-comenta ou anexa algo a uma solicitação.
 
 ## Se o sistema for exposto além da LAN
 
@@ -119,10 +118,13 @@ O desenvolvimento seguiu 12 fases incrementais, cada uma documentada em
 
 ## Atualizações pós-lançamento
 
-- Papel **Operador** adicionado (visibilidade restrita às próprias
-  solicitações); login passou a ser por usuário/senha (sem e-mail);
-  tela de cadastro de usuários; classificação/prioridade da solicitação
-  ficou exclusiva do admin; notificações ampliadas para sempre avisar o
-  admin quando gestor/operador altera algo.
 - Identidade visual **TickeTess** aplicada em toda a interface e nos
   relatórios PDF (cabeçalho, cores, rodapé com paginação).
+- App desktop (Electron) — veja a seção "App desktop" acima.
+- Sistema simplificado para uso pessoal: login e papéis
+  (Admin/Gestor/Operador) removidos, tela de "Usuários" removida,
+  notificações removidas. Criação de ticket ganhou campo livre "quem
+  pediu" e status selecionável na hora de abrir a solicitação. O
+  relatório de acompanhamento passou a resumir cada projeto numa única
+  linha ("N alterações entre DD/MM e DD/MM") em vez de listar cada
+  evento; o relatório técnico continua detalhado.

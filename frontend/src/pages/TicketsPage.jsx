@@ -2,22 +2,18 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
-import { useAuth } from "../context/AuthContext.jsx";
 import { fetchTickets } from "../services/tickets.js";
 import { PRIORITY_LABELS, STATUS_LABELS, TYPE_LABELS } from "../utils/ticketLabels.js";
 
 export default function TicketsPage() {
-  const { user } = useAuth();
-  const isOperador = user?.role === "operador";
-  const [onlyMine, setOnlyMine] = useState(false);
   const [status, setStatus] = useState("");
   const [priority, setPriority] = useState("");
   const [tab, setTab] = useState("ativas");
 
   const { data: tickets, isLoading, isError } = useQuery({
-    queryKey: ["tickets", onlyMine, status, priority, tab],
+    queryKey: ["tickets", status, priority, tab],
     queryFn: () =>
-      fetchTickets({ mine: onlyMine, status: status || undefined, priority: priority || undefined, finalized: tab === "historico" }),
+      fetchTickets({ status: status || undefined, priority: priority || undefined, finalized: tab === "historico" }),
   });
 
   return (
@@ -25,12 +21,6 @@ export default function TicketsPage() {
       <div className="page-header">
         <h1>Solicitações</h1>
         <div className="page-actions">
-          {!isOperador && (
-            <label className="checkbox-label">
-              <input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} />
-              Ver apenas minhas solicitações
-            </label>
-          )}
           <select value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">Todos os status</option>
             {Object.entries(STATUS_LABELS).map(([value, label]) => (
@@ -84,7 +74,7 @@ export default function TicketsPage() {
               <th>Tipo</th>
               <th>Prioridade</th>
               <th>Status</th>
-              <th>Autor</th>
+              <th>Quem pediu</th>
             </tr>
           </thead>
           <tbody>
@@ -100,7 +90,7 @@ export default function TicketsPage() {
                 <td>
                   <span className={`badge badge-status-${ticket.status}`}>{STATUS_LABELS[ticket.status]}</span>
                 </td>
-                <td>{ticket.author ? ticket.author.name : "—"}</td>
+                <td>{ticket.requester_name || "—"}</td>
               </tr>
             ))}
           </tbody>

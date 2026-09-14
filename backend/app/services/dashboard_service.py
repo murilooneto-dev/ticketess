@@ -1,5 +1,5 @@
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session as DbSession, joinedload
+from sqlalchemy.orm import Session as DbSession
 
 from app.models.github import GithubCommit, GithubPullRequest
 from app.models.project import Project, ProjectStatus
@@ -18,21 +18,14 @@ def _count_by(db: DbSession, column, enum_cls) -> dict[str, int]:
     return counts
 
 
-def build_summary(db: DbSession, current_user_id: int) -> DashboardSummary:
+def build_summary(db: DbSession) -> DashboardSummary:
     total_projects = db.execute(select(func.count()).select_from(Project)).scalar_one()
     total_tickets = db.execute(select(func.count()).select_from(Ticket)).scalar_one()
 
-    my_open_tickets = db.execute(
+    open_tickets = db.execute(
         select(func.count())
         .select_from(Ticket)
-        .where(
-            Ticket.created_by == current_user_id,
-            Ticket.status.notin_([TicketStatus.CONCLUIDO, TicketStatus.CANCELADO]),
-        )
-    ).scalar_one()
-
-    my_managed_projects = db.execute(
-        select(func.count()).select_from(Project).where(Project.manager_id == current_user_id)
+        .where(Ticket.status.notin_([TicketStatus.CONCLUIDO, TicketStatus.CANCELADO]))
     ).scalar_one()
 
     projects_by_status = _count_by(db, Project.status, ProjectStatus)
@@ -40,11 +33,7 @@ def build_summary(db: DbSession, current_user_id: int) -> DashboardSummary:
     tickets_by_priority = _count_by(db, Ticket.priority, TicketPriority)
 
     recent_tickets = list(
-        db.execute(
-            select(Ticket).options(joinedload(Ticket.author)).order_by(Ticket.created_at.desc()).limit(RECENT_LIMIT)
-        )
-        .unique()
-        .scalars()
+        db.execute(select(Ticket).order_by(Ticket.created_at.desc()).limit(RECENT_LIMIT)).scalars()
     )
 
     recent_commits = list(
@@ -60,8 +49,7 @@ def build_summary(db: DbSession, current_user_id: int) -> DashboardSummary:
     return DashboardSummary(
         total_projects=total_projects,
         total_tickets=total_tickets,
-        my_open_tickets=my_open_tickets,
-        my_managed_projects=my_managed_projects,
+        open_tickets=open_tickets,
         projects_by_status=projects_by_status,
         tickets_by_status=tickets_by_status,
         tickets_by_priority=tickets_by_priority,
