@@ -9,7 +9,7 @@ export async function fetchReports() {
   return handleApiResponse(response);
 }
 
-export async function generateReports(periodStart, periodEnd) {
+export async function generateReport(periodStart, periodEnd) {
   const response = await fetch(`${API_BASE_URL}/reports/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

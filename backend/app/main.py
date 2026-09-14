@@ -5,20 +5,14 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
-from app.api.auth import router as auth_router
-from app.api.dashboard import router as dashboard_router
 from app.api.github import router as github_router
-from app.api.notifications import router as notifications_router
 from app.api.projects import router as projects_router
-from app.api.project_ideas import router as project_ideas_router
 from app.api.reports import router as reports_router
 from app.api.system import router as system_router
 from app.api.tickets import router as tickets_router
-from app.api.users import router as users_router
 from app.config import settings
 from app.scheduler.scheduler import shutdown_scheduler, start_scheduler
 from app.security.middleware import SecurityHeadersMiddleware
-from app.seed import seed_admin
 from app.utils.logging_config import setup_logging
 
 setup_logging()
@@ -36,7 +30,6 @@ for directory in (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    seed_admin.run()
     start_scheduler()
     logger.info("%s started (env=%s)", settings.APP_NAME, settings.APP_ENV)
     yield
@@ -47,14 +40,9 @@ app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)
 app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(system_router)
-app.include_router(auth_router)
-app.include_router(users_router)
 app.include_router(projects_router)
-app.include_router(project_ideas_router)
 app.include_router(tickets_router)
-app.include_router(notifications_router)
 app.include_router(github_router)
-app.include_router(dashboard_router)
 app.include_router(reports_router)
 
 frontend_dist = settings.frontend_dist_dir

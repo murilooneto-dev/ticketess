@@ -14,7 +14,7 @@ from app.services.github_service import (
     GithubRepoNotConfiguredError,
     sync_project,
 )
-from app.services.report_service import generate_reports
+from app.services.report_service import generate_report
 
 logger = logging.getLogger("app.scheduler")
 
@@ -51,12 +51,8 @@ def generate_weekly_reports() -> None:
     try:
         period_end = date.today()
         period_start = period_end - timedelta(days=6)
-        technical, management = generate_reports(db, period_start, period_end, None)
-        logger.info(
-            "Relatórios semanais gerados automaticamente: técnico #%s, gerencial #%s",
-            technical.id,
-            management.id,
-        )
+        report = generate_report(db, period_start, period_end)
+        logger.info("Relatório semanal gerado automaticamente: #%s", report.id)
     finally:
         db.close()
 

@@ -4,14 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session as DbSession
 
 from app.database import get_db
-from app.models.user import User
 from app.schemas.github import (
     GithubCommitOut,
     GithubPullRequestOut,
     GithubSyncResult,
     TicketGithubActivityOut,
 )
-from app.security.dependencies import get_current_user, require_admin
 from app.services.github_service import (
     GithubApiError,
     GithubNotEnabledError,
@@ -30,11 +28,7 @@ logger = logging.getLogger("app.github")
 
 
 @router.post("/api/projects/{project_id}/github/sync", response_model=GithubSyncResult)
-def post_github_sync(
-    project_id: int,
-    db: DbSession = Depends(get_db),
-    _: User = Depends(require_admin),
-):
+def post_github_sync(project_id: int, db: DbSession = Depends(get_db)):
     project = get_project(db, project_id)
     if project is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projeto não encontrado")
@@ -63,11 +57,7 @@ def post_github_sync(
 
 
 @router.get("/api/projects/{project_id}/github/commits", response_model=list[GithubCommitOut])
-def get_project_commits(
-    project_id: int,
-    db: DbSession = Depends(get_db),
-    _: User = Depends(get_current_user),
-):
+def get_project_commits(project_id: int, db: DbSession = Depends(get_db)):
     project = get_project(db, project_id)
     if project is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projeto não encontrado")
@@ -75,11 +65,7 @@ def get_project_commits(
 
 
 @router.get("/api/projects/{project_id}/github/pull-requests", response_model=list[GithubPullRequestOut])
-def get_project_pull_requests(
-    project_id: int,
-    db: DbSession = Depends(get_db),
-    _: User = Depends(get_current_user),
-):
+def get_project_pull_requests(project_id: int, db: DbSession = Depends(get_db)):
     project = get_project(db, project_id)
     if project is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projeto não encontrado")
@@ -87,11 +73,7 @@ def get_project_pull_requests(
 
 
 @router.get("/api/tickets/{ticket_id}/github", response_model=TicketGithubActivityOut)
-def get_ticket_github_activity(
-    ticket_id: int,
-    db: DbSession = Depends(get_db),
-    _: User = Depends(get_current_user),
-):
+def get_ticket_github_activity(ticket_id: int, db: DbSession = Depends(get_db)):
     ticket = get_ticket(db, ticket_id)
     if ticket is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket não encontrado")

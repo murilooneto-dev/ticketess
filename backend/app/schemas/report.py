@@ -2,8 +2,6 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from app.models.report import ReportType
-
 
 class ReportGenerateRequest(BaseModel):
     period_start: date | None = None
@@ -20,12 +18,6 @@ class ReportOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    type: ReportType
     period_start: date
     period_end: date
     created_at: datetime
-
-
-class ReportGenerateResponse(BaseModel):
-    technical: ReportOut
-    management: ReportOut

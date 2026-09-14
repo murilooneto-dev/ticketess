@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -36,7 +36,7 @@ class Ticket(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
-    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    requester_name: Mapped[str | None] = mapped_column(String(160), nullable=True)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     type: Mapped[TicketType] = mapped_column(Enum(TicketType), nullable=False, default=TicketType.OUTRO)
@@ -51,7 +51,6 @@ class Ticket(Base):
     )
 
     project: Mapped["Project"] = relationship()
-    author: Mapped["User | None"] = relationship(foreign_keys=[created_by])
     comments: Mapped[list["TicketComment"]] = relationship(
         back_populates="ticket", cascade="all, delete-orphan", order_by="TicketComment.created_at"
     )
@@ -68,12 +67,10 @@ class TicketComment(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     ticket_id: Mapped[int] = mapped_column(ForeignKey("tickets.id", ondelete="CASCADE"), nullable=False)
-    author_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     message: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     ticket: Mapped["Ticket"] = relationship(back_populates="comments")
-    author: Mapped["User | None"] = relationship(foreign_keys=[author_id])
 
 
 class TicketAttachment(Base):
@@ -81,7 +78,6 @@ class TicketAttachment(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     ticket_id: Mapped[int] = mapped_column(ForeignKey("tickets.id", ondelete="CASCADE"), nullable=False)
-    uploaded_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
     stored_filename: Mapped[str] = mapped_column(String(255), nullable=False)
     content_type: Mapped[str | None] = mapped_column(String(120), nullable=True)
@@ -89,7 +85,6 @@ class TicketAttachment(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     ticket: Mapped["Ticket"] = relationship(back_populates="attachments")
-    uploader: Mapped["User | None"] = relationship(foreign_keys=[uploaded_by])
 
 
 class TicketHistory(Base):
@@ -97,11 +92,9 @@ class TicketHistory(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     ticket_id: Mapped[int] = mapped_column(ForeignKey("tickets.id", ondelete="CASCADE"), nullable=False)
-    author_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     field: Mapped[str] = mapped_column(String(50), nullable=False)
     old_value: Mapped[str | None] = mapped_column(String(120), nullable=True)
     new_value: Mapped[str | None] = mapped_column(String(120), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     ticket: Mapped["Ticket"] = relationship(back_populates="history")
-    author: Mapped["User | None"] = relationship(foreign_keys=[author_id])

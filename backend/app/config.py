@@ -45,18 +45,6 @@ class Settings(BaseSettings):
 
     UPLOAD_MAX_SIZE_MB: int = 20
 
-    SMTP_ENABLED: bool = False
-    SMTP_HOST: str = ""
-    SMTP_PORT: int = 587
-    SMTP_USERNAME: str = ""
-    SMTP_PASSWORD: str = ""
-    SMTP_FROM: str = ""
-
-    SESSION_EXPIRE_DAYS: int = 7
-    ADMIN_NAME: str = "Administrador"
-    ADMIN_USERNAME: str = "admin"
-    ADMIN_PASSWORD: str = "changeme123"
-
     @property
     def data_dir(self) -> Path:
         return BASE_DIR / "data"
