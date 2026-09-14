@@ -141,7 +141,6 @@ def _build_pdf(path: Path, start: date, end: date, sections: list[ProjectPeriodD
             + len(data.tickets_resolved)
             + len(data.commits)
             + len(data.pull_requests)
-            + len(data.updates)
         )
         story.append(
             Paragraph(

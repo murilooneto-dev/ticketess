@@ -2,20 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session as DbSession
 
 from app.database import get_db
-from app.schemas.project import (
-    ProjectCreate,
-    ProjectOut,
-    ProjectProgressUpdateCreate,
-    ProjectProgressUpdateOut,
-    ProjectUpdateIn,
-)
+from app.schemas.project import ProjectCreate, ProjectOut, ProjectUpdateIn
 from app.services.project_service import (
     ProjectNotFoundError,
-    add_progress_update,
     create_project,
     delete_project,
     get_project,
-    list_progress_updates,
     list_projects,
     update_project,
 )
@@ -53,21 +45,5 @@ def put_project(project_id: int, payload: ProjectUpdateIn, db: DbSession = Depen
 def delete_project_endpoint(project_id: int, db: DbSession = Depends(get_db)):
     try:
         delete_project(db, project_id)
-    except ProjectNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projeto não encontrado")
-
-
-@router.get("/{project_id}/updates", response_model=list[ProjectProgressUpdateOut])
-def get_project_updates(project_id: int, db: DbSession = Depends(get_db)):
-    try:
-        return list_progress_updates(db, project_id)
-    except ProjectNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projeto não encontrado")
-
-
-@router.post("/{project_id}/updates", response_model=ProjectProgressUpdateOut, status_code=status.HTTP_201_CREATED)
-def post_project_update(project_id: int, payload: ProjectProgressUpdateCreate, db: DbSession = Depends(get_db)):
-    try:
-        return add_progress_update(db, project_id, payload)
     except ProjectNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Projeto não encontrado")

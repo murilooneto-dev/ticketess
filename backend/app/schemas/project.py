@@ -52,16 +52,3 @@ class ProjectOut(BaseModel):
     @property
     def has_github_token(self) -> bool:
         return bool(self.github_token)
-
-
-class ProjectProgressUpdateCreate(BaseModel):
-    message: str = Field(min_length=1)
-
-
-class ProjectProgressUpdateOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    project_id: int
-    message: str
-    created_at: datetime

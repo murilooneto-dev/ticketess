@@ -1,5 +1,5 @@
 from app.models.github import GithubCommit, GithubPullRequest
-from app.models.project import Project, ProjectStatus, ProjectUpdate
+from app.models.project import Project, ProjectStatus
 from app.models.report import Report
 from app.models.ticket import (
     Ticket,
@@ -14,7 +14,6 @@ from app.models.ticket import (
 __all__ = [
     "Project",
     "ProjectStatus",
-    "ProjectUpdate",
     "Ticket",
     "TicketType",
     "TicketPriority",

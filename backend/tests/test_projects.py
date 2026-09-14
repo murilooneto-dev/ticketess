@@ -65,29 +65,3 @@ def test_delete_nonexistent_project_returns_404(client, db_session):
     response = client.delete("/api/projects/9999")
 
     assert response.status_code == 404
-
-
-def test_add_progress_update(client, db_session):
-    project_id = client.post("/api/projects", json={"name": "Projeto Z"}).json()["id"]
-
-    response = client.post(f"/api/projects/{project_id}/updates", json={"message": "Início do desenvolvimento"})
-
-    assert response.status_code == 201
-    assert response.json()["message"] == "Início do desenvolvimento"
-
-
-def test_view_progress_updates(client, db_session):
-    project_id = client.post("/api/projects", json={"name": "Projeto V"}).json()["id"]
-    client.post(f"/api/projects/{project_id}/updates", json={"message": "Etapa concluída"})
-
-    response = client.get(f"/api/projects/{project_id}/updates")
-
-    assert response.status_code == 200
-    assert len(response.json()) == 1
-    assert response.json()[0]["message"] == "Etapa concluída"
-
-
-def test_updates_for_nonexistent_project_returns_404(client, db_session):
-    response = client.get("/api/projects/9999/updates")
-
-    assert response.status_code == 404

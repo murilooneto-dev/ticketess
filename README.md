@@ -132,6 +132,10 @@ O desenvolvimento seguiu 12 fases incrementais, cada uma documentada em
 - Interface enxugada numa tela só: Dashboard, lista de Projetos,
   detalhe de Projeto e lista de Solicitações viraram uma única tela —
   projetos em cards recolhíveis (nome + contagem de solicitações), que
-  expandem mostrando edição do projeto, GitHub, andamentos e as
-  solicitações daquele projeto. Botões "Novo projeto", "Nova
+  expandem mostrando edição do projeto, vínculo com repositório GitHub
+  e as solicitações daquele projeto. Botões "Novo projeto", "Nova
   solicitação" e "Relatório" no topo.
+- Exibição de commits/PRs do GitHub e de "andamentos" de projeto
+  removida da tela — a sincronização com o GitHub continua rodando
+  sozinha em segundo plano e alimentando os relatórios; "andamentos"
+  foi removido do sistema por completo (banco de dados incluído).

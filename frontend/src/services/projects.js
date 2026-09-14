@@ -51,20 +51,3 @@ export async function deleteProject(projectId) {
     throw new Error(extractErrorMessage(detail, `Erro ${response.status}`));
   }
 }
-
-export async function fetchProjectUpdates(projectId) {
-  const response = await fetch(`${API_BASE_URL}/projects/${projectId}/updates`, {
-    credentials: "include",
-  });
-  return handleApiResponse(response);
-}
-
-export async function addProjectUpdate(projectId, message) {
-  const response = await fetch(`${API_BASE_URL}/projects/${projectId}/updates`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ message }),
-  });
-  return handleApiResponse(response);
-}

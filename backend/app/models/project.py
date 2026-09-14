@@ -1,8 +1,8 @@
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import DateTime, Enum, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 
@@ -28,18 +28,3 @@ class Project(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
     )
-
-    updates: Mapped[list["ProjectUpdate"]] = relationship(
-        back_populates="project", cascade="all, delete-orphan", order_by="ProjectUpdate.created_at.desc()"
-    )
-
-
-class ProjectUpdate(Base):
-    __tablename__ = "project_updates"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
-    message: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
-
-    project: Mapped["Project"] = relationship(back_populates="updates")

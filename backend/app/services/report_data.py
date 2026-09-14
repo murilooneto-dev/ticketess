@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session as DbSession
 
 from app.models.github import GithubCommit, GithubPullRequest
-from app.models.project import Project, ProjectUpdate
+from app.models.project import Project
 from app.models.ticket import Ticket, TicketHistory, TicketStatus
 
 
@@ -16,7 +16,6 @@ class ProjectPeriodData:
     tickets_resolved: list[Ticket] = field(default_factory=list)
     commits: list[GithubCommit] = field(default_factory=list)
     pull_requests: list[GithubPullRequest] = field(default_factory=list)
-    updates: list[ProjectUpdate] = field(default_factory=list)
 
     def is_empty(self) -> bool:
         return not (
@@ -24,7 +23,6 @@ class ProjectPeriodData:
             or self.tickets_resolved
             or self.commits
             or self.pull_requests
-            or self.updates
         )
 
 
@@ -76,14 +74,6 @@ def collect_period_data(db: DbSession, start: date, end: date) -> list[ProjectPe
                 select(GithubPullRequest).where(
                     GithubPullRequest.project_id == project.id,
                     GithubPullRequest.opened_at.between(start_dt, end_dt),
-                )
-            ).scalars()
-        )
-
-        data.updates = list(
-            db.execute(
-                select(ProjectUpdate).where(
-                    ProjectUpdate.project_id == project.id, ProjectUpdate.created_at.between(start_dt, end_dt)
                 )
             ).scalars()
         )

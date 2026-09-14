@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { addProjectUpdate, deleteProject, fetchProjectUpdates, updateProject } from "../services/projects.js";
+import { deleteProject, updateProject } from "../services/projects.js";
 import { fetchTickets } from "../services/tickets.js";
 import { STATUS_LABELS as PROJECT_STATUS_LABELS, STATUS_OPTIONS as PROJECT_STATUS_OPTIONS } from "../utils/projectStatus.js";
 import { PRIORITY_LABELS, STATUS_LABELS as TICKET_STATUS_LABELS, TYPE_LABELS } from "../utils/ticketLabels.js";
@@ -19,10 +19,6 @@ export default function ProjectCard({ project, tickets }) {
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  const [message, setMessage] = useState("");
-  const [updateError, setUpdateError] = useState("");
-  const [submittingUpdate, setSubmittingUpdate] = useState(false);
-
   const [githubRepo, setGithubRepo] = useState(project.github_repo || "");
   const [repoError, setRepoError] = useState("");
   const [savingRepo, setSavingRepo] = useState(false);
@@ -30,12 +26,6 @@ export default function ProjectCard({ project, tickets }) {
   const [tokenError, setTokenError] = useState("");
   const [savingToken, setSavingToken] = useState(false);
   const [clearingToken, setClearingToken] = useState(false);
-
-  const { data: updates } = useQuery({
-    queryKey: ["project-updates", project.id],
-    queryFn: () => fetchProjectUpdates(project.id),
-    enabled: expanded,
-  });
 
   const { data: historyTickets } = useQuery({
     queryKey: ["tickets", "history", project.id],
@@ -79,21 +69,6 @@ export default function ProjectCard({ project, tickets }) {
     } catch (err) {
       setDeleteError(err.message || "Não foi possível excluir o projeto.");
       setDeleting(false);
-    }
-  }
-
-  async function handleAddUpdate(event) {
-    event.preventDefault();
-    setUpdateError("");
-    setSubmittingUpdate(true);
-    try {
-      await addProjectUpdate(project.id, message);
-      setMessage("");
-      queryClient.invalidateQueries({ queryKey: ["project-updates", project.id] });
-    } catch (err) {
-      setUpdateError(err.message || "Não foi possível registrar o andamento.");
-    } finally {
-      setSubmittingUpdate(false);
     }
   }
 
@@ -184,32 +159,6 @@ export default function ProjectCard({ project, tickets }) {
               </button>
             </div>
             {deleteError && <p className="error">{deleteError}</p>}
-          </div>
-
-          <div className="project-card-section">
-            <h3>Andamento</h3>
-            <form className="form" onSubmit={handleAddUpdate}>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Descreva o andamento..."
-                rows={3}
-                required
-              />
-              {updateError && <p className="error">{updateError}</p>}
-              <button type="submit" disabled={submittingUpdate}>
-                {submittingUpdate ? "Enviando..." : "Registrar andamento"}
-              </button>
-            </form>
-            <ul className="update-list">
-              {updates?.length === 0 && <p>Nenhuma atualização registrada ainda.</p>}
-              {updates?.map((update) => (
-                <li key={update.id}>
-                  <p>{update.message}</p>
-                  <span className="meta">{new Date(update.created_at).toLocaleString("pt-BR")}</span>
-                </li>
-              ))}
-            </ul>
           </div>
 
           <div className="project-card-section">

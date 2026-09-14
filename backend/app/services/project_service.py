@@ -1,8 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session as DbSession
 
-from app.models.project import Project, ProjectUpdate
-from app.schemas.project import ProjectCreate, ProjectProgressUpdateCreate, ProjectUpdateIn
+from app.models.project import Project
+from app.schemas.project import ProjectCreate, ProjectUpdateIn
 
 
 class ProjectNotFoundError(Exception):
@@ -62,28 +62,3 @@ def delete_project(db: DbSession, project_id: int) -> None:
 
     db.delete(project)
     db.commit()
-
-
-def add_progress_update(db: DbSession, project_id: int, data: ProjectProgressUpdateCreate) -> ProjectUpdate:
-    project = db.get(Project, project_id)
-    if project is None:
-        raise ProjectNotFoundError(project_id)
-
-    update = ProjectUpdate(project_id=project_id, message=data.message)
-    db.add(update)
-    db.commit()
-    db.refresh(update)
-    return update
-
-
-def list_progress_updates(db: DbSession, project_id: int) -> list[ProjectUpdate]:
-    project = db.get(Project, project_id)
-    if project is None:
-        raise ProjectNotFoundError(project_id)
-
-    query = (
-        select(ProjectUpdate)
-        .where(ProjectUpdate.project_id == project_id)
-        .order_by(ProjectUpdate.created_at.desc())
-    )
-    return list(db.execute(query).unique().scalars())

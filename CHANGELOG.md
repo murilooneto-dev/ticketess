@@ -24,9 +24,9 @@ pessoal (single-user, sem login).
   cada evento individualmente.
 - Tela única na home (`/`): projetos em cards recolhíveis (nome +
   contagem de solicitações), que expandem mostrando edição do
-  projeto, GitHub, andamentos e as solicitações daquele projeto.
-  Botões "Novo projeto", "Nova solicitação" e "Relatório" no topo
-  (`frontend/src/pages/HomePage.jsx`,
+  projeto, vínculo com repositório GitHub e as solicitações daquele
+  projeto. Botões "Novo projeto", "Nova solicitação" e "Relatório" no
+  topo (`frontend/src/pages/HomePage.jsx`,
   `frontend/src/components/ProjectCard.jsx`,
   `frontend/src/components/NewProjectForm.jsx`).
 
@@ -50,12 +50,19 @@ pessoal (single-user, sem login).
 - Dashboard (cards de estatística, gráficos de barra) e as telas
   separadas de Projetos/Novo Projeto/Detalhe de Projeto/Solicitações —
   substituídas pela tela única (`HomePage`/`ProjectCard`).
+- Exibição de sincronização/commits do GitHub na tela do projeto e a
+  seção "Atividade no GitHub" no detalhe do ticket — só ficam os
+  campos de repositório/token para vincular o projeto; a sincronização
+  em segundo plano (agendador) continua alimentando os relatórios.
+- Funcionalidade de "andamentos" de projeto (tabela `project_updates`,
+  endpoints, tela) removida por completo (migration `10eefa5d59dc`) —
+  não dava mais pra criar novos depois que a tela sumiu.
 
 ### Alterado
 - Todos os endpoints da API deixaram de exigir autenticação/permissão
   por papel.
 - Suíte de testes do backend reescrita para o modelo single-user
-  (61 testes passando).
+  (58 testes passando).
 - `README.md` atualizado (removidas as seções de login/papéis,
   adicionada a seção "App desktop", refletida a tela única).
 
