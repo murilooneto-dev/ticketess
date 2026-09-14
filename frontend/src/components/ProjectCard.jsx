@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { fetchProjectCommits, fetchProjectPullRequests, syncProjectGithub } from "../services/github.js";
+import { fetchProjectCommits, syncProjectGithub } from "../services/github.js";
 import { addProjectUpdate, deleteProject, fetchProjectUpdates, updateProject } from "../services/projects.js";
 import { fetchTickets } from "../services/tickets.js";
 import { STATUS_LABELS as PROJECT_STATUS_LABELS, STATUS_OPTIONS as PROJECT_STATUS_OPTIONS } from "../utils/projectStatus.js";
@@ -44,12 +44,6 @@ export default function ProjectCard({ project, tickets }) {
   const { data: commits } = useQuery({
     queryKey: ["project-commits", project.id],
     queryFn: () => fetchProjectCommits(project.id),
-    enabled: expanded && Boolean(project.github_repo),
-  });
-
-  const { data: pullRequests } = useQuery({
-    queryKey: ["project-pull-requests", project.id],
-    queryFn: () => fetchProjectPullRequests(project.id),
     enabled: expanded && Boolean(project.github_repo),
   });
 
@@ -164,7 +158,6 @@ export default function ProjectCard({ project, tickets }) {
       setSyncResult(result);
       invalidateProjects();
       queryClient.invalidateQueries({ queryKey: ["project-commits", project.id] });
-      queryClient.invalidateQueries({ queryKey: ["project-pull-requests", project.id] });
     } catch (err) {
       setSyncError(err.message || "Não foi possível sincronizar com o GitHub.");
     } finally {
@@ -307,34 +300,6 @@ export default function ProjectCard({ project, tickets }) {
                     sincronizados.
                   </p>
                 )}
-
-                <h4>Pull requests</h4>
-                <ul className="update-list">
-                  {pullRequests?.length === 0 && <p>Nenhum pull request sincronizado ainda.</p>}
-                  {pullRequests?.map((pr) => (
-                    <li key={pr.id}>
-                      <p>
-                        <a href={pr.url} target="_blank" rel="noreferrer">
-                          #{pr.number} {pr.title}
-                        </a>{" "}
-                        <span
-                          className={`badge badge-status-${pr.state === "merged" ? "concluido" : pr.state === "closed" ? "cancelado" : "aberto"}`}
-                        >
-                          {pr.state}
-                        </span>
-                      </p>
-                      <span className="meta">
-                        {pr.author_login || "—"} em {new Date(pr.opened_at).toLocaleString("pt-BR")}
-                        {pr.ticket_id && (
-                          <>
-                            {" "}
-                            — <Link to={`/tickets/${pr.ticket_id}`}>vinculado ao ticket #{pr.ticket_id}</Link>
-                          </>
-                        )}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
 
                 <h4>Commits</h4>
                 <ul className="update-list">
