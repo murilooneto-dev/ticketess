@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { fetchProjectCommits, syncProjectGithub } from "../services/github.js";
 import { addProjectUpdate, deleteProject, fetchProjectUpdates, updateProject } from "../services/projects.js";
 import { fetchTickets } from "../services/tickets.js";
 import { STATUS_LABELS as PROJECT_STATUS_LABELS, STATUS_OPTIONS as PROJECT_STATUS_OPTIONS } from "../utils/projectStatus.js";
@@ -31,20 +30,11 @@ export default function ProjectCard({ project, tickets }) {
   const [tokenError, setTokenError] = useState("");
   const [savingToken, setSavingToken] = useState(false);
   const [clearingToken, setClearingToken] = useState(false);
-  const [syncError, setSyncError] = useState("");
-  const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState(null);
 
   const { data: updates } = useQuery({
     queryKey: ["project-updates", project.id],
     queryFn: () => fetchProjectUpdates(project.id),
     enabled: expanded,
-  });
-
-  const { data: commits } = useQuery({
-    queryKey: ["project-commits", project.id],
-    queryFn: () => fetchProjectCommits(project.id),
-    enabled: expanded && Boolean(project.github_repo),
   });
 
   const { data: historyTickets } = useQuery({
@@ -147,21 +137,6 @@ export default function ProjectCard({ project, tickets }) {
       setTokenError(err.message || "Não foi possível remover o token.");
     } finally {
       setClearingToken(false);
-    }
-  }
-
-  async function handleSync() {
-    setSyncError("");
-    setSyncing(true);
-    try {
-      const result = await syncProjectGithub(project.id);
-      setSyncResult(result);
-      invalidateProjects();
-      queryClient.invalidateQueries({ queryKey: ["project-commits", project.id] });
-    } catch (err) {
-      setSyncError(err.message || "Não foi possível sincronizar com o GitHub.");
-    } finally {
-      setSyncing(false);
     }
   }
 
@@ -280,52 +255,6 @@ export default function ProjectCard({ project, tickets }) {
             </form>
 
             {!project.github_repo && <p className="meta">Nenhum repositório configurado.</p>}
-
-            {project.github_repo && (
-              <>
-                <p className="meta">
-                  Repositório: {project.github_repo}
-                  {project.github_synced_at && (
-                    <> — última sincronização em {new Date(project.github_synced_at).toLocaleString("pt-BR")}</>
-                  )}
-                </p>
-
-                <button type="button" onClick={handleSync} disabled={syncing}>
-                  {syncing ? "Sincronizando..." : "Sincronizar agora"}
-                </button>
-                {syncError && <p className="error">{syncError}</p>}
-                {syncResult && (
-                  <p className="meta">
-                    {syncResult.commits_synced} commit(s) e {syncResult.pull_requests_synced} pull request(s)
-                    sincronizados.
-                  </p>
-                )}
-
-                <h4>Commits</h4>
-                <ul className="update-list">
-                  {commits?.length === 0 && <p>Nenhum commit sincronizado ainda.</p>}
-                  {commits?.map((commit) => (
-                    <li key={commit.id}>
-                      <p>
-                        <a href={commit.url} target="_blank" rel="noreferrer">
-                          {commit.sha.slice(0, 7)}
-                        </a>{" "}
-                        {commit.message.split("\n")[0]}
-                      </p>
-                      <span className="meta">
-                        {commit.author_name || "—"} em {new Date(commit.committed_at).toLocaleString("pt-BR")}
-                        {commit.ticket_id && (
-                          <>
-                            {" "}
-                            — <Link to={`/tickets/${commit.ticket_id}`}>vinculado ao ticket #{commit.ticket_id}</Link>
-                          </>
-                        )}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
           </div>
 
           <div className="project-card-section">

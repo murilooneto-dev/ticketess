@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 
-import { fetchTicketGithubActivity } from "../services/github.js";
 import {
   addComment,
   attachmentDownloadUrl,
@@ -62,11 +61,6 @@ export default function TicketDetailPage() {
   const { data: history } = useQuery({
     queryKey: ["ticket-history", ticketId],
     queryFn: () => fetchHistory(ticketId),
-  });
-
-  const { data: githubActivity } = useQuery({
-    queryKey: ["ticket-github", ticketId],
-    queryFn: () => fetchTicketGithubActivity(ticketId),
   });
 
   function invalidateTicket() {
@@ -254,39 +248,6 @@ export default function TicketDetailPage() {
           {submittingComment ? "Enviando..." : "Comentar"}
         </button>
       </form>
-
-      {githubActivity && (githubActivity.commits.length > 0 || githubActivity.pull_requests.length > 0) && (
-        <>
-          <h2>Atividade no GitHub</h2>
-          <ul className="update-list">
-            {githubActivity.pull_requests.map((pr) => (
-              <li key={`pr-${pr.id}`}>
-                <p>
-                  <a href={pr.url} target="_blank" rel="noreferrer">
-                    Pull request #{pr.number}: {pr.title}
-                  </a>
-                </p>
-                <span className="meta">
-                  {pr.state} — {pr.author_login || "—"} em {new Date(pr.opened_at).toLocaleString("pt-BR")}
-                </span>
-              </li>
-            ))}
-            {githubActivity.commits.map((commit) => (
-              <li key={`commit-${commit.id}`}>
-                <p>
-                  <a href={commit.url} target="_blank" rel="noreferrer">
-                    Commit {commit.sha.slice(0, 7)}
-                  </a>{" "}
-                  {commit.message.split("\n")[0]}
-                </p>
-                <span className="meta">
-                  {commit.author_name || "—"} em {new Date(commit.committed_at).toLocaleString("pt-BR")}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
 
       <h2>Histórico</h2>
       <ul className="update-list">
